@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Jarvis</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { margin:0; min-height:100vh; background:#0f0c29; color:white; font-family:sans-serif; display:flex; justify-content:center; align-items:center; }
+        .liquid-bg { position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; filter:blur(50px); }
+        .orb { position:absolute; border-radius:50%; opacity:0.5; animation:float 8s infinite alternate ease-in-out; }
+        .orb-1 { width: 300px; height: 300px; background: #8a2be2; top: -5%; left: -5%; }
+        .orb-2 { width: 400px; height: 400px; background: #0000ff; bottom: 0; right: -10%; animation-delay: -3s;}
+        @keyframes float { 100% { transform:translate(30px, 30px) scale(1.1); } }
+        
+        .recent-card { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; min-width: 90px; text-align: center; border: 1px dashed cyan; cursor: pointer; transition: 0.3s; flex-shrink: 0; }
+        .recent-card:hover { background: rgba(255,255,255,0.2); border-color: #00f2fe; box-shadow: 0 0 10px #00f2fe; }
+        #recent-docs::-webkit-scrollbar { height: 6px; }
+        #recent-docs::-webkit-scrollbar-thumb { background: #00f2fe; border-radius: 10px; }
+        
+        /* --- PROFESSIONAL CLEAN THEME OVERRIDES --- */
+        body { background: #0f172a !important; color: #f8fafc; font-family: 'Poppins', sans-serif !important; }
+        .liquid-bg, .orb { display: none !important; }
+        .glass-card { background: #1e293b !important; border: 1px solid #334155 !important; border-radius: 16px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3) !important; backdrop-filter: none !important; }
+        .btn-glow { font-family: 'Outfit', sans-serif !important; background: #3b82f6 !important; border-radius: 8px !important; box-shadow: none !important; transition: 0.2s; font-weight: 600; letter-spacing: 0.5px; }
+        .btn-glow:hover { background: #2563eb !important; }
+        .pin-input { font-family: 'Space Mono', monospace !important; background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; border-radius: 8px !important; }
+        .pin-input:focus { border-color: #3b82f6 !important; }
+        .neon-text { font-family: 'Outfit', sans-serif !important; text-shadow: none !important; color: #f8fafc !important; font-weight: 700; display: flex; align-items: center; gap: 10px; letter-spacing: 1px; }
+        .profile-card { background: #0f172a !important; border: 1px solid #334155 !important; border-radius: 12px !important; }
+        .profile-card:hover { border-color: #3b82f6 !important; transform: translateY(-2px); }
+        .recent-card { background: #0f172a !important; border: 1px solid #334155 !important; }
+        
+        /* Layout Toggle specific CSS */
+        .profiles-list { display: flex !important; flex-direction: column !important; gap: 10px; }
+        .profiles-list .profile-card { display: flex !important; align-items: center !important; text-align: left !important; padding: 10px 15px !important; }
+        .profiles-list .avatar { margin: 0 15px 0 0 !important; width: 45px !important; height: 45px !important; }
+        .profiles-list p { margin: 0 !important; flex-grow: 1 !important; font-size: 1.1rem; }
+        .profiles-list > div > div:last-child { margin-top: 0 !important; }
+    </style>
+</head>
+<body style="flex-direction: column; padding: 20px; position: relative; overflow-x: hidden;">
+    <div class="liquid-bg"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+    <!-- Lock Vault Button -->
+    <button onclick="lockVault()" style="position: absolute; top: 15px; left: 15px; background: rgba(255,75,43,0.2); border: 1px solid #ff4b2b; color: white; padding: 5px 15px; border-radius: 20px; cursor: pointer; z-index: 10;" data-en="<i class='fa-solid fa-lock'></i> Lock Vault" data-hi="<i class='fa-solid fa-lock'></i> तिजोरी बंद करें"><i class="fa-solid fa-lock"></i> Lock Vault</button>
+
+    <!-- Language Toggle Button -->
+    <button onclick="toggleLayout()" style="position: absolute; top: 15px; right: 90px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 15px; border-radius: 20px; cursor: pointer; z-index: 10;" title="Toggle List/Grid"><i class="fa-solid fa-list"></i></button>
+    <button onclick="toggleLang()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 15px; border-radius: 20px; cursor: pointer; z-index: 10;">अ / A</button>
+
+    <div class="glass-card" style="max-width: 600px; width: 100%; margin-top: 30px;">
+        <h2 class="neon-text" data-en="<i class='fa-solid fa-shield-halved'></i> Family Vault" data-hi="<i class='fa-solid fa-shield-halved'></i> परिवार तिजोरी"><i class="fa-solid fa-shield-halved"></i> Family Vault</h2>
+        <p id="jarvis-status" style="color: var(--neon-blue);" data-en="Hello! I am ready." data-hi="नमस्ते! मैं तैयार हूँ।">Hello! I am ready.</p>
+        
+        <!-- Stats Container -->
+        <div style="display: flex; justify-content: space-around; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="text-align: center;"><strong id="total-members" style="color: #00f2fe; font-size: 1.2rem;">0</strong><br><span style="font-size: 0.8rem;" data-en="Members" data-hi="सदस्य">Members</span></div>
+            <div style="text-align: center;"><strong id="total-docs" style="color: #ff007f; font-size: 1.2rem;">0</strong><br><span style="font-size: 0.8rem;" data-en="Documents" data-hi="दस्तावेज़">Documents</span></div>
+        </div>
+
+        <!-- Storage Progress Bar -->
+        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+                <span data-en="<i class='fa-solid fa-cloud'></i> Cloud Storage" data-hi="<i class='fa-solid fa-cloud'></i> क्लाउड स्टोरेज"><i class='fa-solid fa-cloud'></i> Cloud Storage</span>
+                <span id="storage-text" style="color: #00f2fe; font-weight: bold;">0 MB / 25 GB</span>
+            </div>
+            <div style="width: 100%; background: rgba(0,0,0,0.5); border-radius: 10px; height: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                <div id="storage-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00f2fe, #ff007f); transition: 1s;"></div>
+            </div>
+        </div>
+
+
+        <div id="profiles" class="profiles-grid">
+            </div>
+
+
+        <!-- Recent Documents Section -->
+        <div style="margin-top: 25px; width: 100%;">
+            <h3 class="neon-text" style="font-size: 1.1rem; text-align: left; margin-bottom: 10px;" data-en="<i class='fa-solid fa-clock-rotate-left'></i> Recent Documents" data-hi="<i class='fa-solid fa-clock-rotate-left'></i> हाल के दस्तावेज़"><i class="fa-solid fa-clock-rotate-left"></i> Recent Documents</h3>
+            <div id="recent-docs" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;">
+                <p style="color: gray; font-size: 0.9rem;" data-en="Loading..." data-hi="लोड हो रहा है...">Loading...</p>
+            </div>
+        </div>
+
+        <button onclick="startListening()" class="btn-glow" style="margin-top:30px; background: var(--neon-purple);" data-en="<i class='fa-solid fa-microphone'></i> Speak to Jarvis" data-hi="<i class='fa-solid fa-microphone'></i> जार्विस से बोलें">
+            <i class="fa-solid fa-microphone"></i> Speak to Jarvis
+        </button>
+    </div>
+
+
+    <!-- Edit Profile / Nickname Modal -->
+    <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:100; justify-content:center; align-items:center;">
+        <div class="glass-card" style="max-width:320px; width: 90%;">
+            <h3 class="neon-text" data-en="Set Private Nickname" data-hi="निजी उपनाम सेट करें">Set Private Nickname</h3>
+            <p style="font-size: 0.8rem; color: gray;" data-en="This name will only be visible to you." data-hi="यह नाम केवल आपको दिखाई देगा।">This name will only be visible to you.</p>
+            <input type="hidden" id="edit-old-nickname">
+            <input type="text" id="edit-nickname" placeholder="Custom Name (e.g. Papa)" data-en-place="Custom Name (e.g. Papa)" data-hi-place="निजी नाम (जैसे: पापा)" class="pin-input" required>
+            <button onclick="submitEditProfile()" class="btn-glow" data-en="<i class='fa-solid fa-check'></i> Save Custom Name" data-hi="<i class='fa-solid fa-check'></i> निजी नाम सेव करें"><i class="fa-solid fa-check"></i> Save Custom Name</button>
+            <button type="button" onclick="document.getElementById('editModal').style.display='none'" style="background:none; border:none; color:white; margin-top:15px; cursor:pointer; width: 100%;" data-en="Cancel" data-hi="रद्द करें">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Language Toggle Logic
+        let isHindi = false;
+        function toggleLang() {
+            isHindi = !isHindi;
+            const attr = isHindi ? 'data-hi' : 'data-en';
+            document.querySelectorAll('[data-en]').forEach(el => el.innerHTML = el.getAttribute(attr));
+            document.querySelectorAll('[data-en-place]').forEach(el => el.placeholder = el.getAttribute(isHindi ? 'data-hi-place' : 'data-en-place'));
+        }
+
+        // Layout Toggle Logic
+        function toggleLayout() {
+            const grid = document.getElementById('profiles');
+            grid.classList.toggle('profiles-list');
+            const isList = grid.classList.contains('profiles-list');
+            localStorage.setItem('layoutPref', isList ? 'list' : 'grid');
+        }
+
+        // Auto-Lock Timer (3 minutes idle)
+        let idleTime = 0;
+        function resetTimer() { idleTime = 0; }
+        window.onload = () => {
+            setInterval(() => {
+                idleTime++;
+                if (idleTime >= 3) lockVault(); // 3 minutes
+            }, 60000); // 1 minute interval check
+            
+            // Mouse hile ya button dabe toh timer reset
+            document.body.addEventListener('mousemove', resetTimer);
+            document.body.addEventListener('keypress', resetTimer);
+            document.body.addEventListener('click', resetTimer);
+            loadProfiles();
+            loadRecentDocs();
+            
+            // Set layout preference
+            if(localStorage.getItem('layoutPref') === 'list') document.getElementById('profiles').classList.add('profiles-list');
+
+            document.body.addEventListener('click', () => {
+                const userName = localStorage.getItem('vaultUser') || 'सदस्य'; // Naam nikalo
+                speak(`${userName}, आपका स्वागत है। बताइए, क्या काम करना है?`);
+            }, { once: true });
+        };
+
+
+        // Assistant Speaking
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'hi-IN';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Fetching Profiles from DB
+        let vaultMembers = []; // Global list taaki Jarvis isko yaad rakh sake
+        async function loadProfiles() {
+            const res = await fetch('/api/members');
+            const members = await res.json();
+            vaultMembers = members; // List ko save karein
+            const container = document.getElementById('profiles');
+            
+            // Update Stats (Naya Feature)
+            document.getElementById('total-members').innerText = members.length;
+            const totalDocs = members.reduce((sum, m) => sum + (m.docCount || 0), 0);
+            document.getElementById('total-docs').innerText = totalDocs;
+
+            // Storage Logic (Hum average 1.5MB per document maan kar chal rahe hain Cloudinary compression ke baad)
+            const estimatedMB = (totalDocs * 1.5).toFixed(1); 
+            document.getElementById('storage-text').innerText = `${estimatedMB} MB / 25 GB`;
+            document.getElementById('storage-bar').style.width = `${Math.min((estimatedMB / 25000) * 100, 100)}%`;
+
+            // Alag-alag Neon Colors ki list
+            const colors = ['#00f2fe', '#ff007f', '#8a2be2', '#00ff88', '#ffaa00', '#ff00ff', '#ffff00', '#00bfff'];
+            
+            container.innerHTML = members.map((m, index) => {
+                const color = colors[index % colors.length]; // Har sadasya ko naya color dega
+                return `
+                <div class="profile-card" onclick="openProfile('${m.nickname}')" style="position: relative; border-color: transparent; transition: 0.3s; cursor: pointer;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='transparent'">
+                    <div class="avatar" style="background: ${color}22; color: ${color}; border: 2px solid ${color}; box-shadow: 0 0 15px ${color}44; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 10px;">${m.avatar}</div>
+                    <p>${m.displayName}</p>
+                    
+                    <!-- Doc Count & Edit Control -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 10px;">
+                        <span style="font-size: 0.8rem; background: ${color}22; color: ${color}; padding: 3px 10px; border-radius: 12px; border: 1px solid ${color}55;">${m.docCount || 0} Docs</span>
+                        <button onclick="openEditSetup('${m.nickname}', '${m.name}', event)" title="Edit Profile" style="background:rgba(0,0,0,0.5); border:1px solid #ffaa00; color:#ffaa00; padding:2px 8px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // Edit Profile Logic (Nickname badalne ke liye)
+        function openEditSetup(nickname, name, event) {
+            if(event) event.stopPropagation();
+            document.getElementById('edit-old-nickname').value = nickname;
+            document.getElementById('edit-nickname').value = nickname;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        async function submitEditProfile() {
+            const oldNickname = document.getElementById('edit-old-nickname').value;
+            const customName = document.getElementById('edit-nickname').value.trim();
+
+            if(!customName) return alert("नाम खाली नहीं हो सकता!");
+
+            const res = await fetch('/api/members/' + oldNickname, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customName })
+            });
+            const data = await res.json();
+            if(data.success) window.location.reload();
+            else alert((isHindi ? "त्रुटि: " : "Error: ") + data.message);
+        }
+
+        // Recent Docs Fetching Logic
+        async function loadRecentDocs() {
+            const res = await fetch('/api/recent-docs');
+            const docs = await res.json();
+            const container = document.getElementById('recent-docs');
+            if (docs.length > 0) {
+                container.innerHTML = docs.map(d => `
+                    <div class="recent-card" onclick="window.open('${d.fileUrl}', '_blank')">
+                        <i class="fa-solid ${d.fileUrl.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} fa-lg" style="margin-bottom: 5px;"></i><br><b style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 80px;">${d.docName}</b>
+                        <span style="font-size: 0.65rem; color: #ff007f;">@${d.ownerNickname}</span>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `<p style="color: gray; font-size: 0.9rem;" data-en="No recent documents." data-hi="कोई हाल का दस्तावेज़ नहीं।">${isHindi ? 'कोई हाल का दस्तावेज़ नहीं।' : 'No recent documents.'}</p>`;
+            }
+        }
+
+        // Har member ka apna alag folder kholne ka logic
+        function openProfile(nickname) {
+            speak(nickname + " ka folder khol rahi hoon.");
+            setTimeout(() => {
+                window.location.href = '/profile?user=' + nickname;
+            }, 1500); // 1.5 second ka delay taaki Jarvis ki aawaz puri ho jaye
+        }
+
+        // Vault Lock (Logout) Logic
+        async function lockVault() {
+            speak(isHindi ? "तिजोरी बंद कर रही हूँ।" : "Locking the vault.");
+            await fetch('/api/logout');
+            setTimeout(() => {
+                window.location.href = '/'; // Login page par fek do
+            }, 1000);
+        }
+
+        // Voice Command Handling
+        function startListening() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'hi-IN';
+            recognition.start();
+            document.getElementById('jarvis-status').innerText = isHindi ? "सुन रही हूँ..." : "Listening...";
+
+            recognition.onresult = (event) => {
+                const cmd = event.results[0][0].transcript.toLowerCase();
+                document.getElementById('jarvis-status').innerText = isHindi ? `आपने कहा: "${cmd}"` : `You said: "${cmd}"`;
+                
+                // --- 1. General Voice Commands (Bina Hath Lagaye Dashboard Control) ---
+                if (cmd.includes('add') || cmd.includes('naya') || cmd.includes('jodo')) {
+                    speak(isHindi ? "नया सदस्य जोड़ने का फॉर्म खोल रही हूँ।" : "Opening the form to add a new member.");
+                    document.getElementById('addModal').style.display = 'flex';
+                    return;
+                }
+                if (cmd.includes('close') || cmd.includes('band karo') || cmd.includes('cancel')) {
+                    speak(isHindi ? "ठीक है, बंद कर रही हूँ।" : "Alright, closing it.");
+                    document.getElementById('addModal').style.display = 'none';
+                    return;
+                }
+                if (cmd.includes('lock') || cmd.includes('logout') || cmd.includes('bahar') || cmd.includes('band karo')) {
+                    lockVault();
+                    return;
+                }
+                if (cmd.includes('backup') || cmd.includes('zip') || cmd.includes('download all')) {
+                    speak(isHindi ? "वॉल्ट का बैकअप तैयार कर रही हूँ।" : "Preparing vault backup.");
+                    downloadBackup();
+                    return;
+                }
+
+                // --- 2. Profile Specific Commands ---
+                // Database se match karke dekho ki kis member ka naam liya gaya hai
+                let matchedMember = null;
+                for(let m of vaultMembers) {
+                    if(cmd.includes(m.nickname.toLowerCase()) || cmd.includes(m.name.toLowerCase())) {
+                        matchedMember = m;
+                        break;
+                    }
+                }
+
+                if(matchedMember) {
+                    // NAYA: Agar Nickname change karne ko bola gaya hai
+                    if (cmd.includes("naam badal") || cmd.includes("naam change") || cmd.includes("nickname")) {
+                        speak(isHindi ? `ठीक है, ${matchedMember.nickname} का नया नाम टाइप करें।` : `Alright, type the new name for ${matchedMember.nickname}.`);
+                        openEditSetup(matchedMember.nickname, matchedMember.name, null);
+                        return;
+                    }
+
+                    // Agar command mein "download" bola gaya hai
+                    if (cmd.includes("download") || cmd.includes("daunlod")) {
+                        speak("Ji, " + matchedMember.nickname + " ka document dhoondh rahi hoon...");
+                        
+                        // Backend se us member ke documents mangwao
+                        fetch('/api/docs/' + matchedMember.nickname)
+                            .then(res => res.json())
+                            .then(docs => {
+                                let foundDoc = null;
+                                for(let d of docs) {
+                                    // Document ke naam ka har word check karein (Jaise: "Aadhar" in "Aadhar Card")
+                                    const docWords = d.docName.toLowerCase().split(' ');
+                                    if(docWords.some(word => cmd.includes(word))) {
+                                        foundDoc = d;
+                                        break;
+                                    }
+                                }
+                                
+                                if(foundDoc) {
+                                    speak(foundDoc.docName + " download kar rahi hoon.");
+                                    const downloadUrl = foundDoc.fileUrl.replace('/upload/', '/upload/fl_attachment/');
+                                    const a = document.createElement('a');
+                                    a.href = downloadUrl;
+                                    a.download = foundDoc.docName;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                } else {
+                                    speak("Maaf kijiye, mujhe " + matchedMember.nickname + " ki profile mein ye document nahi mila.");
+                                }
+                            });
+                    } else {
+                        // Agar sirf naam bola, toh uski profile kholo
+                        speak("Ji, " + matchedMember.nickname + " ki profile khol rahi hoon.");
+                        setTimeout(() => {
+                            window.location.href = '/profile?user=' + matchedMember.nickname;
+                        }, 1500);
+                    }
+                } else {
+                    speak("Maaf kijiye, mujhe ye profile nahi mili. Phir se koshish karein.");
+                }
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vault Login</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    <!-- Face API Library -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        /* Liquid Glass Theme Basics */
+        body {
+            margin: 0; padding: 0; min-height: 100vh;
+            background: #0f0c29; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+        }
+        .liquid-bg { position: absolute; width: 100%; height: 100%; z-index: -1; filter: blur(50px); }
+        .orb { position: absolute; border-radius: 50%; opacity: 0.6; animation: float 8s infinite alternate ease-in-out; }
+        .orb-1 { width: 300px; height: 300px; background: #ff007f; top: 10%; left: 10%; }
+        .orb-2 { width: 400px; height: 400px; background: #00f2fe; bottom: 5%; right: 10%; animation-delay: -3s; }
+        .orb-3 { width: 250px; height: 250px; background: #4facfe; top: 40%; left: 50%; animation-delay: -5s; }
+        
+        @keyframes float { 100% { transform: translate(30px, 30px) scale(1.1); } }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); padding: 30px; width: 90%; max-width: 400px;
+            text-align: center; position: relative; color: white;
+        }
+        .lang-btn {
+            position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px 15px; 
+            border-radius: 20px; cursor: pointer; transition: 0.3s;
+        }
+        .lang-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        /* --- PROFESSIONAL CLEAN THEME OVERRIDES --- */
+        body { background: #0f172a !important; color: #f8fafc; font-family: 'Poppins', sans-serif !important; }
+        .liquid-bg, .orb { display: none !important; }
+        .glass-card { background: #1e293b !important; border: 1px solid #334155 !important; border-radius: 16px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3) !important; backdrop-filter: none !important; }
+        .btn-glow { font-family: 'Outfit', sans-serif !important; background: #3b82f6 !important; border-radius: 8px !important; box-shadow: none !important; transition: 0.2s; font-weight: 600; width: 100%; padding: 12px; border: none; color: white; font-size: 1.1rem; cursor: pointer; letter-spacing: 0.5px; }
+        .btn-glow:hover { background: #2563eb !important; }
+        .pin-input { font-family: 'Space Mono', monospace !important; background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; border-radius: 8px !important; width: 80%; padding: 12px; margin-bottom: 15px; text-align: center; font-size: 1.2rem; letter-spacing: 5px; outline: none; }
+        .pin-input:focus { border-color: #3b82f6 !important; }
+        .neon-text { font-family: 'Outfit', sans-serif !important; text-shadow: none !important; color: #f8fafc !important; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 25px; letter-spacing: 1px; }
+        
+        /* PROFESSIONAL SCANNER UI */
+        .cam-container { position: relative; border-radius: 50% !important; border: 4px solid #3b82f6 !important; width: 200px !important; height: 200px !important; margin: 0 auto 25px !important; box-shadow: 0 0 30px rgba(59,130,246,0.3) !important; overflow: hidden; }
+        #face-cam { width: 100%; height: 100%; object-fit: cover; transform: scale(1.2); }
+        .laser { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #3b82f6 !important; box-shadow: 0 0 15px 3px #3b82f6 !important; animation: scan 2s infinite ease-in-out; }
+        @keyframes scan { 0%, 100% { top: 0; } 50% { top: 100%; } }
+    </style>
+</head>
+<body>
+    <div class="liquid-bg">
+        <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
+    </div>
+
+    <div class="glass-card">
+        <button class="lang-btn" onclick="toggleLang()">अ / A</button>
+
+        <h1 class="neon-text" data-en="<i class='fa-solid fa-vault'></i> Family Vault" data-hi="<i class='fa-solid fa-vault'></i> परिवार तिजोरी"><i class="fa-solid fa-vault"></i> Family Vault</h1>
+        
+        <div class="cam-container">
+            <video id="face-cam" autoplay playsinline></video>
+            <div class="laser"></div>
+        </div>
+
+        <!-- Face ID is Default Now -->
+        <div id="face-section">
+            <button onclick="faceLogin()" class="btn-glow" style="background: linear-gradient(45deg, #ff007f, #8a2be2);" id="face-btn"><i class="fa-solid fa-expand"></i> Scan Face-ID</button>
+            <p onclick="showAdmin()" style="color: #00f2fe; margin-top: 15px; cursor: pointer; text-decoration: underline; font-size: 0.9rem;" data-en="Admin Login (PIN)" data-hi="एडमिन लॉगिन (पिन)">Admin Login (PIN)</p>
+        </div>
+
+        <!-- Admin PIN Hidden by Default -->
+        <div id="pin-section" style="display: none;">
+            <input type="password" id="pin" class="pin-input" placeholder="Enter 6-Digit PIN" data-en-place="Enter 6-Digit PIN" data-hi-place="6-अंकों का पिन दर्ज करें" maxlength="6">
+            <button onclick="checkAuth()" class="btn-glow" data-en="<i class='fa-solid fa-unlock-keyhole'></i> Admin Login" data-hi="एडमिन लॉगिन <i class='fa-solid fa-unlock-keyhole'></i>"><i class="fa-solid fa-unlock-keyhole"></i> Admin Login</button>
+            <p onclick="showFace()" style="color: #ff007f; margin-top: 15px; cursor: pointer; text-decoration: underline; font-size: 0.9rem;" data-en="Back to Face-ID" data-hi="वापस फेस-आईडी पर">Back to Face-ID</p>
+        </div>
+
+        <p id="error-msg" style="color: #ff4b2b; margin-top: 10px;"></p>
+    </div>
+
+    <script>
+        // Language Toggle Logic
+        let isHindi = false;
+        function toggleLang() {
+            isHindi = !isHindi;
+            const attr = isHindi ? 'data-hi' : 'data-en';
+            document.querySelectorAll('[data-en]').forEach(el => el.innerHTML = el.getAttribute(attr));
+            document.querySelectorAll('[data-en-place]').forEach(el => el.placeholder = el.getAttribute(isHindi ? 'data-hi-place' : 'data-en-place'));
+        }
+
+        // AI Bolne ki settings
+        function speak(text) {
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'hi-IN'; utterance.pitch = 1.1; utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        let modelsLoaded = false;
+        // Page load hote hi members lao aur AI models load karo
+        window.onload = async () => {
+            document.getElementById('error-msg').innerHTML = "<i class='fa-solid fa-hourglass-half fa-spin'></i> AI Models Loading... Please wait";
+            document.getElementById('error-msg').style.color = "#00f2fe";
+            
+            // Load Face API Models
+            await faceapi.nets.ssdMobilenetv1.loadFromUri('https://vladmandic.github.io/face-api/model/');
+            await faceapi.nets.faceLandmark68Net.loadFromUri('https://vladmandic.github.io/face-api/model/');
+            await faceapi.nets.faceRecognitionNet.loadFromUri('https://vladmandic.github.io/face-api/model/');
+            modelsLoaded = true;
+            document.getElementById('error-msg').innerText = "";
+        };
+
+        // Login Toggles
+        function showAdmin() {
+            document.getElementById('face-section').style.display = 'none';
+            document.getElementById('pin-section').style.display = 'block';
+        }
+        function showFace() {
+            document.getElementById('pin-section').style.display = 'none';
+            document.getElementById('face-section').style.display = 'block';
+        }
+
+        // Camera setup
+        const video = document.getElementById('face-cam');
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+            .then(s => video.srcObject = s)
+            .catch(e => console.log("Camera Blocked"));
+
+        // Enter Key Listener
+        document.getElementById('pin').addEventListener('keypress', (e) => { if(e.key === 'Enter') checkAuth(); });
+
+        function checkAuth() {
+            const pinVal = document.getElementById('pin').value;
+            const msg = document.getElementById('error-msg');
+            msg.style.color = "#00f2fe";
+            msg.innerHTML = isHindi ? "<i class='fa-solid fa-spinner fa-spin'></i> प्रमाणित किया जा रहा है..." : "<i class='fa-solid fa-spinner fa-spin'></i> Authenticating...";
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pinVal })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    localStorage.setItem('vaultUser', 'एडमिन'); // Admin login ke liye
+                    msg.innerHTML = isHindi ? "<i class='fa-solid fa-circle-check'></i> सत्यापित!" : "<i class='fa-solid fa-circle-check'></i> Verified!";
+                    setTimeout(() => window.location.href = "/admin", 1000);
+                } else {
+                    msg.style.color = "#ff4b2b";
+                    msg.innerHTML = isHindi ? "<i class='fa-solid fa-circle-xmark'></i> गलत पिन!" : "<i class='fa-solid fa-circle-xmark'></i> Wrong PIN!";
+                }
+            })
+            .catch(err => {
+                msg.style.color = "#ff4b2b";
+                msg.innerHTML = isHindi ? "<i class='fa-solid fa-triangle-exclamation'></i> सर्वर त्रुटि!" : "<i class='fa-solid fa-triangle-exclamation'></i> Server Error!";
+            });
+        }
+
+        // 👇 NAYA ASLI FACE RECOGNITION LOGIN 👇
+        async function faceLogin() {
+            if (!modelsLoaded) return alert("AI Models are still loading...");
+            const msg = document.getElementById('error-msg');
+            const btn = document.getElementById('face-btn');
+            
+            btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Scanning Face...";
+            btn.disabled = true;
+
+            // 1. Camera se chehra dhoondho aur scan karo
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+            
+            if (!detection) {
+                msg.innerHTML = isHindi ? "<i class='fa-solid fa-face-frown'></i> चेहरा नहीं मिला! कैमरे में ठीक से देखें।" : "<i class='fa-solid fa-face-frown'></i> No face detected! Look properly into the camera.";
+                msg.style.color = "#ff4b2b";
+                btn.innerHTML = "<i class='fa-solid fa-expand'></i> Scan Face-ID";
+                btn.disabled = false;
+                return;
+            }
+
+            // 2. Data Backend ko bhejo
+            const descriptor = Array.from(detection.descriptor);
+            const res = await fetch('/api/face-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ descriptor }) // Bina naam bheje bhej do
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem('vaultUser', data.nickname); // Face-ID wale ka naam save karein
+                msg.innerHTML = "<i class='fa-solid fa-circle-check'></i> " + (isHindi ? "पहचान लिया " : "Welcome ") + data.nickname + "!";
+                msg.style.color = "#00f2fe";
+                speak((isHindi ? "पहचान लिया " : "Welcome ") + data.nickname + ". तिजोरी खुल रही है।");
+                setTimeout(() => window.location.href = "/dashboard", 2000); // Awaz ke baad open hoga
+            } else {
+                msg.innerHTML = "<i class='fa-solid fa-triangle-exclamation fa-fade'></i> " + (isHindi ? "अनजान चेहरा! प्रवेश वर्जित।" : "UNKNOWN FACE! Access Denied.");
+                msg.style.color = "#ff4b2b";
+                
+                // CHOR KO PAKDO: Screenshot le kar upload karo
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                canvas.toBlob(blob => {
+                    const formData = new FormData();
+                    formData.append('photo', blob, 'intruder.jpg');
+                    formData.append('attemptedName', 'Unknown Face');
+                    fetch('/api/report-intruder', { method: 'POST', body: formData });
+                }, 'image/jpeg');
+
+                btn.innerHTML = "<i class='fa-solid fa-expand'></i> Retry Face Scan";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Profile</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { margin:0; min-height:100vh; background:#0f0c29; color:white; font-family:sans-serif; display:flex; justify-content:center; align-items:center; flex-direction:column; padding: 20px;}
+        
+        /* --- PROFESSIONAL CLEAN THEME OVERRIDES --- */
+        body { background: #0f172a !important; color: #f8fafc; font-family: 'Poppins', sans-serif !important; }
+        .liquid-bg, .orb { display: none !important; }
+        .glass-card { background: #1e293b !important; border: 1px solid #334155 !important; border-radius: 16px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3) !important; backdrop-filter: none !important; width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; padding: 25px; }
+        .btn-glow { font-family: 'Outfit', sans-serif !important; background: #3b82f6 !important; border-radius: 8px !important; box-shadow: none !important; transition: 0.2s; font-weight: 600; width: 100%; padding: 12px; border: none; color: white; font-size: 1rem; margin-top:10px; cursor: pointer; letter-spacing: 0.5px; }
+        .btn-glow:hover { background: #2563eb !important; }
+        .pin-input { font-family: 'Space Mono', monospace !important; background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; border-radius: 8px !important; width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 15px; outline: none; font-size: 1rem; }
+        .pin-input:focus { border-color: #3b82f6 !important; }
+        .neon-text { font-family: 'Outfit', sans-serif !important; text-shadow: none !important; color: #f8fafc !important; font-weight: 700; letter-spacing: 1px; }
+        .doc-card { background: #0f172a !important; border: 1px solid #334155 !important; border-radius: 12px !important; padding: 15px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .doc-card:hover { border-color: #3b82f6 !important; transform: translateY(-2px); }
+        .orb { position:absolute; border-radius:50%; opacity:0.5; animation:float 8s infinite alternate; }
+        .orb-1 { width: 300px; height: 300px; background: #8a2be2; top: -5%; left: -5%; }
+        .orb-2 { width: 400px; height: 400px; background: #0000ff; bottom: 0; right: -10%; animation-delay: -3s;}
+        @keyframes float { 100% { transform:translate(30px, 30px); } }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            padding: 25px; width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px;
+        }
+        .btn-glow { width: 100%; padding: 12px; border-radius: 10px; border: none; background: linear-gradient(45deg, #00f2fe, #4facfe); color: white; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top:10px; }
+        .pin-input { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: none; outline: none; font-size: 1rem; }
+        
+        .lang-btn {
+            position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.1);
+            border:1px solid rgba(255,255,255,0.3); color:white; padding:5px 15px; border-radius:20px; cursor:pointer; z-index:10;
+        }
+        
+        .docs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; margin-top: 15px; }
+        .doc-card { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; text-align: center; border: 1px dashed cyan; cursor: pointer; transition: 0.3s; }
+        .doc-card:hover { background: rgba(255,255,255,0.2); border: 1px solid #00f2fe; box-shadow: 0 0 10px #00f2fe;}
+        .delete-btn { position: absolute; top: -5px; right: -5px; background: #ff4b2b; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; font-size: 12px; z-index: 10; transition: 0.3s;}
+        .delete-btn:hover { background: #ff0000; transform: scale(1.1); }
+        .download-btn { position: absolute; top: -5px; left: -5px; background: #00f2fe; color: black; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; font-size: 14px; z-index: 10; transition: 0.3s;}
+        .download-btn:hover { background: #4facfe; transform: scale(1.1); }
+        .share-btn { position: absolute; bottom: -5px; right: -5px; background: #00ff88; color: black; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; font-size: 12px; z-index: 10; transition: 0.3s;}
+        .share-btn:hover { background: #00cc6a; transform: scale(1.1); }
+    </style>
+</head>
+<body>
+    <!-- Language Toggle -->
+    <button class="lang-btn" onclick="toggleLang()">अ / A</button>
+
+    <div class="liquid-bg"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+    <div class="glass-card">
+        <button id="back-btn" onclick="window.location.href='/dashboard'" style="position:absolute; top:15px; left:15px; background:rgba(255,255,255,0.1); border:1px solid white; color:white; padding:5px 10px; border-radius:10px; cursor:pointer;" data-en="<i class='fa-solid fa-arrow-left'></i> Back" data-hi="<i class='fa-solid fa-arrow-left'></i> पीछे"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        <h2 id="profile-name" class="neon-text" style="margin-top: 20px;">Loading...</h2>
+        <p id="profile-nick" style="color: cyan;" data-en="All secure documents." data-hi="सभी सुरक्षित दस्तावेज़।">All secure documents.</p>
+    </div>
+
+    <div class="glass-card">
+        <h3 data-en="<i class='fa-solid fa-folder-open'></i> Documents" data-hi="<i class='fa-solid fa-folder-open'></i> दस्तावेज़"><i class="fa-solid fa-folder-open"></i> Documents</h3>
+        
+        <!-- Search Bar & Download All Button -->
+        <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
+            <input type="text" id="searchDoc" placeholder="Search Documents..." data-en-place="Search Documents..." data-hi-place="दस्तावेज़ खोजें..." class="pin-input" style="margin: 0; flex: 1;" onkeyup="filterDocs()">
+            <button onclick="downloadAllDocs()" style="background: rgba(0, 242, 254, 0.2); border: 1px solid #00f2fe; color: #00f2fe; border-radius: 10px; padding: 0 15px; cursor: pointer; transition: 0.3s;" title="Download All">
+                <i class="fa-solid fa-download"></i> <span data-en="All" data-hi="सभी">All</span>
+            </button>
+        </div>
+
+        <div id="docs-container" class="docs-grid">
+            <p data-en="Scanning Vault..." data-hi="तिजोरी स्कैन हो रही है...">Scanning Vault...</p>
+        </div>
+        
+        <!-- Hidden Camera Input -->
+        <input type="file" id="camera-input" accept="image/*,application/pdf" capture="environment" style="display: none;" onchange="uploadPhoto(this)">
+        <button id="upload-btn" onclick="openUploadModal()" class="btn-glow" style="margin-top: 20px; background: linear-gradient(45deg, #b224ef, #7579ff);" data-en="<i class='fa-solid fa-upload'></i> Upload New Document" data-hi="<i class='fa-solid fa-upload'></i> नया दस्तावेज़ अपलोड करें">
+            <i class="fa-solid fa-upload"></i> Upload New Document
+        </button>
+    </div>
+
+    <!-- Naya Lightbox Modal (Photo dekhne ke liye) -->
+    <div id="lightboxModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:200; justify-content:center; align-items:center; flex-direction:column;" onclick="closeLightbox()">
+        <img id="lightboxImg" src="" style="max-width:90%; max-height:80vh; border-radius:15px; border:2px solid #00f2fe; box-shadow: 0 0 20px #00f2fe; object-fit: contain;">
+        <a id="lightboxPdfBtn" href="#" target="_blank" style="display:none; margin-top:15px; background:#00f2fe; color:black; padding:10px 20px; border-radius:20px; text-decoration:none; font-weight:bold;" data-en="<i class='fa-solid fa-file-pdf'></i> Open Full PDF" data-hi="<i class='fa-solid fa-file-pdf'></i> पूरा PDF खोलें"><i class="fa-solid fa-file-pdf"></i> Open Full PDF</a>
+        <button style="margin-top:20px; background:rgba(255,255,255,0.1); border:1px solid white; color:white; padding:10px 20px; border-radius:20px; cursor:pointer;" data-en="<i class='fa-solid fa-xmark'></i> Close Preview" data-hi="<i class='fa-solid fa-xmark'></i> बंद करें"><i class="fa-solid fa-xmark"></i> Close Preview</button>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:250; justify-content:center; align-items:center; flex-direction:column;">
+        <div class="glass-card" style="background: white; padding: 20px; border-radius: 15px; width: auto; max-width: none;">
+            <div id="qrcode"></div>
+        </div>
+        <button onclick="document.getElementById('qrModal').style.display='none'" style="margin-top:20px; background:rgba(255,255,255,0.1); border:1px solid white; color:white; padding:10px 20px; border-radius:20px; cursor:pointer;" data-en="<i class='fa-solid fa-xmark'></i> Close" data-hi="<i class='fa-solid fa-xmark'></i> बंद करें"><i class="fa-solid fa-xmark"></i> Close</button>
+    </div>
+
+    <!-- Naya Upload Modal (Document Name Likhne Ke Liye) -->
+    <div id="uploadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:100; justify-content:center; align-items:center;">
+        <div class="glass-card" style="max-width:320px; width: 90%;">
+            <h3 class="neon-text" data-en="Document Name" data-hi="दस्तावेज़ का नाम">Document Name</h3>
+            <input type="text" id="customDocName" placeholder="E.g. PAN Card, Aadhar" data-en-place="E.g. PAN Card, Aadhar" data-hi-place="जैसे: पैन कार्ड, आधार" class="pin-input">
+            
+            <button onclick="triggerCamera()" class="btn-glow" data-en="<i class='fa-solid fa-camera'></i> Select & Upload" data-hi="<i class='fa-solid fa-camera'></i> चुनें और अपलोड करें"><i class="fa-solid fa-camera"></i> Select & Upload</button>
+            <button onclick="closeUploadModal()" style="background:none; border:none; color:white; margin-top:15px; cursor:pointer; width: 100%;" data-en="Cancel" data-hi="रद्द करें">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let isHindi = false;
+        function toggleLang() {
+            isHindi = !isHindi;
+            const attr = isHindi ? 'data-hi' : 'data-en';
+            document.querySelectorAll('[data-en]').forEach(el => el.innerHTML = el.getAttribute(attr));
+        }
+
+        // URL se member ka nickname nikalein (e.g. ?user=Golu)
+        const urlParams = new URLSearchParams(window.location.search);
+        const nickname = urlParams.get('user');
+
+        if (nickname) {
+            document.getElementById('profile-name').innerText = nickname + "'s Vault";
+            document.getElementById('profile-nick').innerText = "All secure documents.";
+            
+            let globalDocs = []; // Search / Filter karne ke liye global list
+
+            // Backend API se is member ke documents dhoondhein
+            fetch('/api/docs/' + nickname)
+                .then(res => res.json())
+                .then(docs => {
+                    globalDocs = docs;
+                    renderDocs(globalDocs);
+                });
+        }
+
+        // Document Render & Search Logic
+        function renderDocs(docs) {
+            const container = document.getElementById('docs-container');
+            if (docs.length > 0) {
+                container.innerHTML = docs.map(d => `
+                    <div class="doc-card" style="position: relative;" onclick="openLightbox('${d.fileUrl}')">
+                        <button class="delete-btn" onclick="deleteDocument('${d._id}', event)"><i class="fa-solid fa-trash"></i></button>
+                        <button class="download-btn" onclick="downloadDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-download"></i></button>
+                        <button class="share-btn" onclick="shareDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-share-nodes"></i></button>
+                        <i class="fa-solid ${d.fileUrl.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} fa-2x" style="margin-bottom: 8px;"></i><br><b>${d.docName}</b>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `<p style="color: gray;" data-en="No documents uploaded yet." data-hi="अभी कोई दस्तावेज़ नहीं है।">${isHindi ? 'अभी कोई दस्तावेज़ नहीं है।' : 'No documents uploaded yet.'}</p>`;
+            }
+        }
+
+        function filterDocs() {
+            const query = document.getElementById('searchDoc').value.toLowerCase();
+            const filtered = globalDocs.filter(d => d.docName.toLowerCase().includes(query));
+            renderDocs(filtered);
+        }
+
+        // 👇 BULK DOWNLOAD LOGIC 👇
+        function downloadAllDocs() {
+            if(globalDocs.length === 0) {
+                alert(isHindi ? "डाउनलोड करने के लिए कोई दस्तावेज़ नहीं है!" : "No documents to download!");
+                return;
+            }
+            const confirmDL = confirm(isHindi ? `क्या आप सभी ${globalDocs.length} दस्तावेज़ डाउनलोड करना चाहते हैं?` : `Do you want to download all ${globalDocs.length} documents?`);
+            if(!confirmDL) return;
+
+            let delay = 0;
+            globalDocs.forEach(d => {
+                setTimeout(() => {
+                    const downloadUrl = d.fileUrl.replace('/upload/', '/upload/fl_attachment/');
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = d.docName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }, delay);
+                delay += 800; // 800ms gap taaki browser download block na kare
+            });
+        }
+
+        // 👇 Lightbox Logic (Photo Preview) 👇
+        function openLightbox(url) {
+            let previewUrl = url;
+            if (url.toLowerCase().endsWith('.pdf')) {
+                // Cloudinary Magic: PDF ko image ki tarah preview karne ke liye URL ko .jpg bana do
+                previewUrl = url.substring(0, url.lastIndexOf('.')) + '.jpg';
+                
+                // Full PDF open karne wala button dikhao
+                document.getElementById('lightboxPdfBtn').style.display = 'block';
+                document.getElementById('lightboxPdfBtn').href = url;
+            } else {
+                document.getElementById('lightboxPdfBtn').style.display = 'none';
+            }
+            document.getElementById('lightboxImg').src = previewUrl;
+            document.getElementById('lightboxModal').style.display = 'flex';
+        }
+        function closeLightbox() {
+            document.getElementById('lightboxModal').style.display = 'none';
+            document.getElementById('lightboxImg').src = '';
+        }
+
+        // 👇 Modal Control Logic 👇
+        function openUploadModal() {
+            document.getElementById('customDocName').value = ''; // Purana likha hua saaf karein
+            document.getElementById('uploadModal').style.display = 'flex';
+        }
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+        }
+        function triggerCamera() {
+            const docName = document.getElementById('customDocName').value.trim();
+            if(!docName) {
+                alert(isHindi ? "कृपया पहले दस्तावेज़ का नाम लिखें!" : "Please enter the document name first!");
+                return;
+            }
+            document.getElementById('camera-input').click(); // File picker kholo
+        }
+
+        // 👇 NAYA UPLOAD LOGIC YAHAN HAI 👇
+        async function uploadPhoto(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            
+            const docName = document.getElementById('customDocName').value.trim();
+            closeUploadModal(); // Upload process shuru hote hi modal band kar do
+
+            // UI update: Uploading dikhayein
+            const btn = document.getElementById('upload-btn');
+            const oldHtml = btn.innerHTML; // Ab innerHTML lenge
+            btn.innerHTML = isHindi ? "<i class='fa-solid fa-spinner fa-spin'></i> क्लाउड पर जा रहा है..." : "<i class='fa-solid fa-spinner fa-spin'></i> Uploading to Cloud...";
+            btn.disabled = true;
+
+            // Form data banayein
+            const formData = new FormData();
+            formData.append('document', file);
+            formData.append('nickname', nickname); // Upar wale URL se nikala gaya profile ka naam
+            formData.append('docName', docName);
+
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if(data.success) {
+                    alert(isHindi ? "दस्तावेज़ सुरक्षित रूप से सहेज लिया गया!" : "Document safely saved in Vault!");
+                    window.location.reload(); // Page refresh karke naya doc screen par layein
+                } else {
+                    alert((isHindi ? "त्रुटि: " : "Error: ") + data.message);
+                }
+            } catch(err) {
+                alert(isHindi ? "सर्वर त्रुटि!" : "Server Error!");
+            } finally {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+        }
+
+        // 👇 DELETE DOCUMENT LOGIC 👇
+        async function deleteDocument(docId, event) {
+            event.stopPropagation(); // Isse card open hone se ruk jayega, sirf delete logic chalega
+            
+            const confirmDelete = confirm(isHindi ? "क्या आप सच में इस दस्तावेज़ को हटाना चाहते हैं?" : "Are you sure you want to delete this document?");
+            if (!confirmDelete) return;
+
+            try {
+                const res = await fetch('/api/docs/' + docId, { method: 'DELETE' });
+                const data = await res.json();
+                if(data.success) {
+                    window.location.reload(); // Delete hone ke baad list turant refresh ho jayegi
+                } else {
+                    alert((isHindi ? "त्रुटि: " : "Error: ") + data.message);
+                }
+            } catch(err) {
+                alert(isHindi ? "सर्वर त्रुटि!" : "Server Error!");
+            }
+        }
+
+        // 👇 DOWNLOAD DOCUMENT LOGIC 👇
+        function downloadDoc(url, name, event) {
+            event.stopPropagation(); // Card ko open hone se rokna
+            // Cloudinary API trick: URL mein 'fl_attachment' daalne se file direct download ho jati hai
+            const downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
+            
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // 👇 SHARE DOCUMENT LOGIC 👇
+        function shareDoc(url, name, event) {
+            event.stopPropagation();
+            if (navigator.share) { // Mobile Browser support
+                navigator.share({
+                    title: 'Family Vault Document',
+                    text: `Family Vault Se Document Bheja Gaya Hai: ${name}`,
+                    url: url
+                }).catch(err => console.log('Share error:', err));
+            } else { // PC Browser support
+                // QR Code Generate Karo
+                document.getElementById('qrcode').innerHTML = ""; // Purana saaf karo
+                new QRCode(document.getElementById("qrcode"), { text: url, width: 200, height: 200 });
+                document.getElementById('qrModal').style.display = 'flex';
+            }
+        }
+    </script>
+</body>
+</html>

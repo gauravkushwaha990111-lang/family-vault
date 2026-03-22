@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | Jarvis</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body { margin:0; min-height:100vh; background:#0f0c29; color:white; font-family:sans-serif; display:flex; justify-content:center; align-items:center; }
+        .liquid-bg { position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; filter:blur(50px); }
+        .orb { position:absolute; border-radius:50%; opacity:0.5; animation:float 8s infinite alternate ease-in-out; }
+        .orb-1 { width: 300px; height: 300px; background: #8a2be2; top: -5%; left: -5%; }
+        .orb-2 { width: 400px; height: 400px; background: #0000ff; bottom: 0; right: -10%; animation-delay: -3s;}
+        @keyframes float { 100% { transform:translate(30px, 30px) scale(1.1); } }
+        .delete-btn { position: absolute; top: -5px; right: -5px; background: #ff4b2b; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; font-size: 12px; z-index: 10; transition: 0.3s;}
+        .delete-btn:hover { background: #ff0000; transform: scale(1.1); }
+        
+        /* --- PROFESSIONAL CLEAN THEME OVERRIDES --- */
+        body { background: #0f172a !important; color: #f8fafc; font-family: 'Poppins', sans-serif !important; }
+        .liquid-bg, .orb { display: none !important; }
+        .glass-card { background: #1e293b !important; border: 1px solid #334155 !important; border-radius: 16px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3) !important; backdrop-filter: none !important; }
+        .btn-glow { font-family: 'Outfit', sans-serif !important; background: #3b82f6 !important; border-radius: 8px !important; box-shadow: none !important; transition: 0.2s; font-weight: 600; letter-spacing: 0.5px; }
+        .btn-glow:hover { background: #2563eb !important; }
+        .pin-input { font-family: 'Space Mono', monospace !important; background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; border-radius: 8px !important; }
+        .pin-input:focus { border-color: #3b82f6 !important; }
+        .neon-text { font-family: 'Outfit', sans-serif !important; text-shadow: none !important; color: #f8fafc !important; font-weight: 700; display: flex; align-items: center; gap: 10px; letter-spacing: 1px; }
+        .profile-card { background: #0f172a !important; border: 1px solid #334155 !important; border-radius: 12px !important; }
+        .profile-card:hover { border-color: #3b82f6 !important; transform: translateY(-2px); }
+        
+        /* PROFESSIONAL SCANNER UI */
+        .cam-wrapper { position: relative; border-radius: 50% !important; border: 4px solid #3b82f6 !important; width: 220px !important; height: 220px !important; margin: 15px auto 25px !important; box-shadow: 0 0 30px rgba(59,130,246,0.3) !important; overflow: hidden; }
+        .scanner-line { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #3b82f6 !important; box-shadow: 0 0 15px 3px #3b82f6 !important; animation: scan 2s infinite ease-in-out; }
+        @keyframes scan { 0%, 100% { top: 0; } 50% { top: 100%; } }
+    </style>
+</head>
+<body style="flex-direction: column; padding: 20px; position: relative; overflow-x: hidden;">
+    <div class="liquid-bg"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+    <button onclick="lockVault()" style="position: absolute; top: 15px; left: 15px; background: rgba(255,75,43,0.2); border: 1px solid #ff4b2b; color: white; padding: 5px 15px; border-radius: 20px; cursor: pointer; z-index: 10;" data-en="<i class='fa-solid fa-lock'></i> Lock Vault" data-hi="<i class='fa-solid fa-lock'></i> तिजोरी बंद करें"><i class="fa-solid fa-lock"></i> Lock Vault</button>
+    <button onclick="toggleLang()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 15px; border-radius: 20px; cursor: pointer; z-index: 10;">अ / A</button>
+
+    <div class="glass-card" style="max-width: 600px; width: 100%; margin-top: 30px;">
+        <h2 class="neon-text" data-en="<i class='fa-solid fa-user-shield'></i> Admin Vault" data-hi="<i class='fa-solid fa-user-shield'></i> एडमिन तिजोरी"><i class="fa-solid fa-user-shield"></i> Admin Vault</h2>
+        <p id="jarvis-status" style="color: var(--neon-blue);" data-en="Admin Mode Active." data-hi="एडमिन मोड चालू।">Admin Mode Active.</p>
+        
+        <!-- Stats Container -->
+        <div style="display: flex; justify-content: space-around; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="text-align: center;"><strong id="total-members" style="color: #00f2fe; font-size: 1.2rem;">0</strong><br><span style="font-size: 0.8rem;" data-en="Members" data-hi="सदस्य">Members</span></div>
+            <div style="text-align: center;"><strong id="total-docs" style="color: #ff007f; font-size: 1.2rem;">0</strong><br><span style="font-size: 0.8rem;" data-en="Documents" data-hi="दस्तावेज़">Documents</span></div>
+        </div>
+
+        <!-- Storage Progress Bar -->
+        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+                <span data-en="<i class='fa-solid fa-cloud'></i> Cloud Storage" data-hi="<i class='fa-solid fa-cloud'></i> क्लाउड स्टोरेज"><i class='fa-solid fa-cloud'></i> Cloud Storage</span>
+                <span id="storage-text" style="color: #00f2fe; font-weight: bold;">0 MB / 25 GB</span>
+            </div>
+            <div style="width: 100%; background: rgba(0,0,0,0.5); border-radius: 10px; height: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                <div id="storage-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00f2fe, #ff007f); transition: 1s;"></div>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; margin-top: 20px;">
+            <button onclick="openAddModal()" class="btn-glow" style="background:none; border:1px dashed cyan; margin:0; flex:1;" data-en="<i class='fa-solid fa-user-plus'></i> Add Member" data-hi="<i class='fa-solid fa-user-plus'></i> नया सदस्य">
+                <i class="fa-solid fa-user-plus"></i> Add Member
+            </button>
+            <button onclick="downloadBackup()" id="backup-btn" class="btn-glow" style="background: rgba(0, 242, 254, 0.2); border: 1px solid #00f2fe; margin:0; color: #00f2fe; flex:1;" data-en="<i class='fa-solid fa-file-zipper'></i> Backup Vault" data-hi="<i class='fa-solid fa-file-zipper'></i> बैकअप (ZIP)">
+                <i class="fa-solid fa-file-zipper"></i> Backup Vault
+            </button>
+        </div>
+
+        <div id="profiles" class="profiles-grid"></div>
+
+        <!-- INTRUDER ALERT SECTION 🚨 -->
+        <div id="intruder-section" style="margin-top: 25px; width: 100%;">
+            <h3 style="font-size: 1.1rem; text-align: left; margin-bottom: 10px; color: #ff4b2b;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Intruder Alerts (Chor)
+            </h3>
+            <div id="intruders-list" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;"></div>
+        </div>
+
+        <!-- VAULT ACTIVITY TERMINAL 💻 -->
+        <div id="activity-log-section" style="background: rgba(0,0,0,0.8); border: 1px solid #00ff88; border-radius: 10px; padding: 15px; margin-top: 25px; box-shadow: inset 0 0 10px rgba(0,255,136,0.2);">
+            <h3 style="font-size: 0.9rem; margin-top: 0; color: #00ff88; font-family: 'Space Mono', monospace; border-bottom: 1px dashed #00ff88; padding-bottom: 5px;">
+                > VAULT_ACTIVITY_LOG.exe <span style="animation: blink 1s infinite;">_</span>
+            </h3>
+            <div id="terminal-logs" style="color: #00f2fe; font-size: 0.75rem; font-family: 'Space Mono', monospace; height: 100px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;"></div>
+        </div>
+        <style> @keyframes blink { 0% {opacity:1;} 50% {opacity:0;} 100% {opacity:1;} } #terminal-logs::-webkit-scrollbar { width: 4px; } #terminal-logs::-webkit-scrollbar-thumb { background: #00ff88; border-radius: 10px; } </style>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div id="addModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:100; justify-content:center; align-items:center;">
+        <div class="glass-card" style="max-width:320px; width: 90%;">
+            <h3 class="neon-text" data-en="Add New Member" data-hi="नया सदस्य जोड़ें">Add New Member</h3>
+            <input type="text" id="new-member-name" placeholder="Real Name" class="pin-input" required>
+            <div class="cam-wrapper">
+                <video id="add-cam" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scale(1.2);"></video>
+                <div class="scanner-line"></div>
+            </div>
+            <button onclick="addMemberWithFace()" class="btn-glow" id="add-capture-btn"><i class="fa-solid fa-camera"></i> Capture Face & Save</button>
+            <button type="button" onclick="closeAddModal()" style="background:none; border:none; color:white; margin-top:15px; cursor:pointer; width: 100%;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Face Registration Modal -->
+    <div id="faceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:100; justify-content:center; align-items:center; flex-direction:column;">
+        <h3 class="neon-text" id="face-setup-title">Setup Face ID</h3>
+        <div class="cam-wrapper">
+            <video id="setup-cam" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scale(1.2);"></video>
+            <div class="scanner-line"></div>
+        </div>
+        <button onclick="captureFaceData()" class="btn-glow" id="capture-btn" style="width: 250px;"><i class="fa-solid fa-camera"></i> Capture Face Data</button>
+        <button onclick="closeFaceModal()" style="background:none; border:none; color:white; margin-top:15px; cursor:pointer;">Cancel</button>
+    </div>
+
+    <script>
+        let isHindi = false;
+        function toggleLang() {
+            isHindi = !isHindi;
+            const attr = isHindi ? 'data-hi' : 'data-en';
+            document.querySelectorAll('[data-en]').forEach(el => el.innerHTML = el.getAttribute(attr));
+        }
+
+        window.onload = () => {
+            loadIntruders();
+            loadActivityLogs();
+            loadProfiles();
+            loadAIModels();
+        };
+
+        let modelsLoaded = false;
+        async function loadAIModels() {
+            await faceapi.nets.ssdMobilenetv1.loadFromUri('https://vladmandic.github.io/face-api/model/');
+            await faceapi.nets.faceLandmark68Net.loadFromUri('https://vladmandic.github.io/face-api/model/');
+            await faceapi.nets.faceRecognitionNet.loadFromUri('https://vladmandic.github.io/face-api/model/');
+            modelsLoaded = true;
+        }
+
+        async function loadProfiles() {
+            const res = await fetch('/api/members');
+            const members = await res.json();
+            const container = document.getElementById('profiles');
+            
+            document.getElementById('total-members').innerText = members.length;
+            const totalDocs = members.reduce((sum, m) => sum + (m.docCount || 0), 0);
+            document.getElementById('total-docs').innerText = totalDocs;
+            const estimatedMB = (totalDocs * 1.5).toFixed(1); 
+            document.getElementById('storage-text').innerText = `${estimatedMB} MB / 25 GB`;
+            document.getElementById('storage-bar').style.width = `${Math.min((estimatedMB / 25000) * 100, 100)}%`;
+
+            const colors = ['#00f2fe', '#ff007f', '#8a2be2', '#00ff88', '#ffaa00', '#ff00ff', '#ffff00', '#00bfff'];
+            
+            container.innerHTML = members.map((m, index) => {
+                const color = colors[index % colors.length];
+                return `
+                <div class="profile-card" onclick="window.location.href='/profile?user=${m.nickname}'" style="position: relative; border-color: transparent; transition: 0.3s; cursor: pointer;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='transparent'">
+                    <button class="delete-btn" onclick="deleteProfile('${m.nickname}', event)"><i class="fa-solid fa-trash"></i></button>
+                    <div class="avatar" style="background: ${color}22; color: ${color}; border: 2px solid ${color}; box-shadow: 0 0 15px ${color}44; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 10px;">${m.avatar}</div>
+                    <p>${m.displayName}</p>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 10px;">
+                        <span style="font-size: 0.8rem; background: ${color}22; color: ${color}; padding: 3px 10px; border-radius: 12px; border: 1px solid ${color}55;">${m.docCount || 0} Docs</span>
+                        <button onclick="openFaceSetup('${m.nickname}', event)" title="Setup Face ID" style="background:rgba(0,0,0,0.5); border:1px solid #00f2fe; color:#00f2fe; padding:2px 8px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-id-badge"></i></button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        async function loadIntruders() {
+            const res = await fetch('/api/intruders');
+            const intruders = await res.json();
+            if (intruders.length > 0) {
+                document.getElementById('intruders-list').innerHTML = intruders.map(i => `
+                    <div style="background: rgba(255,75,43,0.1); padding: 5px; border-radius: 10px; border: 1px solid #ff4b2b; text-align: center; min-width: 90px;">
+                        <img src="${i.photoUrl}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; margin-bottom:5px;">
+                        <br><b style="font-size:0.7rem; color:#ff4b2b;">Tried: ${i.attemptedName}</b>
+                        <br><span style="font-size:0.6rem; color:gray;">${new Date(i.timestamp).toLocaleDateString()}</span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('intruders-list').innerHTML = `<p style="color:gray; font-size:0.8rem;">No intruders detected.</p>`;
+            }
+        }
+
+        async function loadActivityLogs() {
+            const res = await fetch('/api/logs');
+            const logs = await res.json();
+            const container = document.getElementById('terminal-logs');
+            if (logs.length > 0) {
+                container.innerHTML = logs.map(l => `<span><span style="color:gray;">[${new Date(l.timestamp).toLocaleTimeString()}]</span> ${l.message}</span>`).join('');
+            } else {
+                container.innerHTML = `<span style="color:gray;">No recent activity detected...</span>`;
+            }
+        }
+
+        // Naya Add Member Logic (Face ke sath)
+        let addVideo = document.getElementById('add-cam');
+        function openAddModal() {
+            if (!modelsLoaded) return alert("AI is loading, please wait!");
+            document.getElementById('new-member-name').value = '';
+            document.getElementById('addModal').style.display = 'flex';
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(s => addVideo.srcObject = s);
+        }
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+            if(addVideo.srcObject) addVideo.srcObject.getTracks().forEach(track => track.stop());
+        }
+
+        async function addMemberWithFace() {
+            const name = document.getElementById('new-member-name').value.trim();
+            if(!name) return alert("Please enter a name!");
+            
+            const btn = document.getElementById('add-capture-btn');
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> AI Processing...";
+            btn.disabled = true;
+
+            const detection = await faceapi.detectSingleFace(addVideo).withFaceLandmarks().withFaceDescriptor();
+            if (!detection) {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+                return alert("No face detected! Make sure you are in a bright room.");
+            }
+
+            const descriptor = Array.from(detection.descriptor);
+            const res = await fetch('/add-member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, descriptor }) });
+            const data = await res.json();
+            
+            if (data.success) { window.location.reload(); }
+            else { alert("Error: " + data.message); btn.innerHTML = oldHtml; btn.disabled = false; }
+        }
+
+        // Face Setup Logic
+        let currentSetupUser = "";
+        let setupVideo = document.getElementById('setup-cam');
+        function openFaceSetup(nickname, event) {
+            event.stopPropagation();
+            if (!modelsLoaded) return alert("AI is loading, please wait!");
+            currentSetupUser = nickname;
+            document.getElementById('face-setup-title').innerText = "Register Face for " + nickname;
+            document.getElementById('faceModal').style.display = 'flex';
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(s => setupVideo.srcObject = s);
+        }
+        function closeFaceModal() {
+            document.getElementById('faceModal').style.display = 'none';
+            if(setupVideo.srcObject) setupVideo.srcObject.getTracks().forEach(track => track.stop());
+        }
+        async function captureFaceData() {
+            const btn = document.getElementById('capture-btn');
+            btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> AI is Processing...";
+            const detection = await faceapi.detectSingleFace(setupVideo).withFaceLandmarks().withFaceDescriptor();
+            if (!detection) {
+                btn.innerHTML = "<i class='fa-solid fa-camera'></i> Capture Face Data";
+                return alert("No face detected! Make sure you are in a bright room.");
+            }
+            const descriptor = Array.from(detection.descriptor);
+            await fetch('/api/register-face', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: currentSetupUser, descriptor }) });
+            alert("Face ID Registered for " + currentSetupUser);
+            closeFaceModal();
+        }
+
+        async function deleteProfile(nickname, event) {
+            event.stopPropagation();
+            if (!confirm(`Are you sure you want to delete ${nickname}'s profile and ALL documents?`)) return;
+            const res = await fetch('/api/members/' + nickname, { method: 'DELETE' });
+            const data = await res.json();
+            if(data.success) window.location.reload();
+            else alert("Error: " + data.message);
+        }
+
+        async function downloadBackup() {
+            const btn = document.getElementById('backup-btn');
+            const originalHtml = btn.innerHTML;
+            try {
+                btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Preparing...";
+                btn.disabled = true;
+                const res = await fetch('/api/all-docs');
+                const docs = await res.json();
+                if (docs.length === 0) { alert("No documents to backup!"); btn.innerHTML = originalHtml; btn.disabled = false; return; }
+                const zip = new JSZip();
+                let count = 0;
+                for (const d of docs) {
+                    try {
+                        const fileRes = await fetch(d.fileUrl);
+                        const blob = await fileRes.blob();
+                        const ext = d.fileUrl.split('.').pop() || 'jpg';
+                        zip.folder(d.ownerNickname).file(`${d.docName}.${ext}`, blob);
+                        count++;
+                        btn.innerHTML = `<i class='fa-solid fa-spinner fa-spin'></i> Zipping ${count}/${docs.length}...`;
+                    } catch(e) {}
+                }
+                btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Finalizing ZIP...";
+                const content = await zip.generateAsync({ type: "blob" });
+                saveAs(content, "Family_Vault_Backup.zip");
+                btn.innerHTML = originalHtml; btn.disabled = false;
+            } catch (err) { alert("Backup failed!"); btn.innerHTML = originalHtml; btn.disabled = false; }
+        }
+
+        async function lockVault() {
+            await fetch('/api/logout');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

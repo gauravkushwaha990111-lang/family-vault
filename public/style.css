@@ -1,0 +1,94 @@
+:root {
+    --neon-blue: #00f2fe;
+    --neon-purple: #7000ff;
+    --dark-bg: #0a0a0b;
+}
+
+body {
+    background: var(--dark-bg);
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 0 20px rgba(0, 242, 254, 0.1);
+}
+
+.neon-text { text-shadow: 0 0 10px var(--neon-blue); color: var(--neon-blue); margin-bottom: 20px; }
+
+#face-cam {
+    width: 100%;
+    border-radius: 15px;
+    border: 2px solid var(--neon-blue);
+    margin-bottom: 20px;
+    transform: scaleX(-1);
+}
+
+.pin-input {
+    background: transparent;
+    border: 2px solid var(--neon-purple);
+    border-radius: 10px;
+    color: white;
+    padding: 12px;
+    width: 85%;
+    text-align: center;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    outline: none;
+}
+
+.btn-glow {
+    background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+    border: none;
+    padding: 15px;
+    border-radius: 50px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    box-shadow: 0 0 15px rgba(112, 0, 255, 0.4);
+}
+
+.profiles-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.profile-card {
+    background: rgba(255,255,255,0.08);
+    padding: 20px;
+    border-radius: 15px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: 0.3s;
+}
+
+.profile-card:hover { border-color: var(--neon-blue); background: rgba(255,255,255,0.15); }
+
+.avatar {
+    width: 55px;
+    height: 55px;
+    background: var(--neon-purple);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    font-size: 1.4rem;
+    font-weight: bold;
+}
