@@ -9,6 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
     <!-- QR Code Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- PWA Setup -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2913/2913409.png">
     <style>
         body { margin:0; min-height:100vh; background:#0f0c29; color:white; font-family:sans-serif; display:flex; justify-content:center; align-items:center; flex-direction:column; padding: 20px;}
         
@@ -68,6 +72,8 @@
         .download-btn:hover { background: #4facfe; transform: scale(1.1); }
         .share-btn { position: absolute; bottom: -5px; right: -5px; background: #00ff88; color: black; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; font-size: 12px; z-index: 10; transition: 0.3s;}
         .share-btn:hover { background: #00cc6a; transform: scale(1.1); }
+        .whatsapp-btn { position: absolute; bottom: -5px; right: 25px; background: #25D366; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; font-size: 14px; z-index: 10; transition: 0.3s;}
+        .whatsapp-btn:hover { background: #128C7E; transform: scale(1.1); }
         .cat-btn { background: var(--input-bg); border: 1px solid var(--border-main); color: var(--text-main); padding: 5px 12px; border-radius: 15px; cursor: pointer; white-space: nowrap; transition: 0.3s; font-family: 'Poppins', sans-serif; font-size: 0.85rem;}
         .cat-btn.active, .cat-btn:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
     </style>
@@ -170,9 +176,10 @@
         // URL se member ka nickname nikalein (e.g. ?user=Golu)
         const urlParams = new URLSearchParams(window.location.search);
         const nickname = urlParams.get('user');
+        const displayName = urlParams.get('name') || nickname; // Asli naam nikalo
 
         if (nickname) {
-            document.getElementById('profile-name').innerText = nickname + "'s Vault";
+            document.getElementById('profile-name').innerText = displayName + (isHindi ? " की तिजोरी" : "'s Vault");
             document.getElementById('profile-nick').innerText = "All secure documents.";
             
             let globalDocs = []; // Search / Filter karne ke liye global list
@@ -203,6 +210,7 @@
                         <button class="delete-btn" onclick="deleteDocument('${d._id}', event)"><i class="fa-solid fa-trash"></i></button>
                         <button class="download-btn" onclick="downloadDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-download"></i></button>
                         <button class="share-btn" onclick="shareDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-share-nodes"></i></button>
+                        <button class="whatsapp-btn" onclick="shareWhatsApp('${d.fileUrl}', '${d.docName}', event)" title="Share on WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
                         <div style="position: absolute; top: 5px; left: 5px; background: #3b82f6; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px;">${d.category || 'Other'}</div>
                         <i class="fa-solid ${d.fileUrl.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} fa-2x" style="margin-bottom: 8px;"></i><br><b>${d.docName}</b>
                     </div>
@@ -373,6 +381,15 @@
                 new QRCode(document.getElementById("qrcode"), { text: url, width: 200, height: 200 });
                 document.getElementById('qrModal').style.display = 'flex';
             }
+        }
+
+        // 👇 WHATSAPP SHARE LOGIC 👇
+        function shareWhatsApp(url, name, event) {
+            event.stopPropagation();
+            // WhatsApp link format generate karna
+            const message = encodeURIComponent(`Family Vault Se Document Bheja Gaya Hai: *${name}*\n\n🔗 Link: ${url}`);
+            const whatsappUrl = `https://api.whatsapp.com/send?text=${message}`;
+            window.open(whatsappUrl, '_blank'); // Naye tab me WhatsApp khol dega
         }
     </script>
 </body>

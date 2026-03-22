@@ -9,6 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
     <!-- Face API Library -->
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- PWA Setup -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2913/2913409.png">
     <style>
         /* --- THEME VARIABLES --- */
         :root {
@@ -103,6 +107,15 @@
     </div>
 
     <script>
+        // Register Service Worker (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('PWA Setup Successful!'))
+                    .catch(err => console.log('PWA Setup Failed!', err));
+            });
+        }
+
         // Theme Toggle Logic
         function toggleTheme() {
             const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
@@ -219,10 +232,10 @@
             const data = await res.json();
 
             if (data.success) {
-                localStorage.setItem('vaultUser', data.nickname); // Face-ID wale ka naam save karein
-                msg.innerHTML = "<i class='fa-solid fa-circle-check'></i> " + (isHindi ? "पहचान लिया " : "Welcome ") + data.nickname + "!";
+                localStorage.setItem('vaultUser', data.name); // Ab Asli naam save hoga
+                msg.innerHTML = "<i class='fa-solid fa-circle-check'></i> " + (isHindi ? "पहचान लिया " : "Welcome ") + data.name + "!";
                 msg.style.color = "#00f2fe";
-                speak((isHindi ? "पहचान लिया " : "Welcome ") + data.nickname + ". तिजोरी खुल रही है।");
+                speak((isHindi ? "पहचान लिया " : "Welcome ") + data.name + ". तिजोरी खुल रही है।");
                 setTimeout(() => window.location.href = "/dashboard", 2000); // Awaz ke baad open hoga
             } else {
                 msg.innerHTML = "<i class='fa-solid fa-triangle-exclamation fa-fade'></i> " + (isHindi ? "अनजान चेहरा! प्रवेश वर्जित।" : "UNKNOWN FACE! Access Denied.");

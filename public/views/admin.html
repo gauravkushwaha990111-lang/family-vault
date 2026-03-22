@@ -10,6 +10,10 @@
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- PWA Setup -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2913/2913409.png">
     <style>
         /* --- THEME VARIABLES --- */
         :root {
@@ -195,8 +199,8 @@
             container.innerHTML = members.map((m, index) => {
                 const color = colors[index % colors.length];
                 return `
-                <div class="profile-card" onclick="window.location.href='/profile?user=${m.nickname}'" style="position: relative; border-color: transparent; transition: 0.3s; cursor: pointer;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='transparent'">
-                    <button class="delete-btn" onclick="deleteProfile('${m.nickname}', event)"><i class="fa-solid fa-trash"></i></button>
+                <div class="profile-card" onclick="window.location.href='/profile?user=${m.nickname}&name=${encodeURIComponent(m.displayName)}'" style="position: relative; border-color: transparent; transition: 0.3s; cursor: pointer;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='transparent'">
+                    <button class="delete-btn" onclick="deleteProfile('${m.nickname}', '${m.displayName}', event)"><i class="fa-solid fa-trash"></i></button>
                     <div class="avatar" style="background: ${color}22; color: ${color}; border: 2px solid ${color}; box-shadow: 0 0 15px ${color}44; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 10px;">${m.avatar}</div>
                     <p>${m.displayName}</p>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 10px;">
@@ -326,9 +330,9 @@
             btn.innerHTML = oldHtml; btn.disabled = false;
         }
 
-        async function deleteProfile(nickname, event) {
+        async function deleteProfile(nickname, displayName, event) {
             event.stopPropagation();
-            if (!confirm(`Are you sure you want to delete ${nickname}'s profile and ALL documents?`)) return;
+            if (!confirm(`Are you sure you want to delete ${displayName}'s profile and ALL documents?`)) return;
             const res = await fetch('/api/members/' + nickname, { method: 'DELETE' });
             const data = await res.json();
             if(data.success) window.location.reload();

@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    <!-- PWA Setup -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2913/2913409.png">
     <style>
         /* --- THEME VARIABLES --- */
         :root {
@@ -207,7 +211,7 @@
             container.innerHTML = members.map((m, index) => {
                 const color = colors[index % colors.length]; // Har sadasya ko naya color dega
                 return `
-                <div class="profile-card" onclick="openProfile('${m.nickname}')" style="position: relative; border-color: transparent; transition: 0.3s; cursor: pointer;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='transparent'">
+                <div class="profile-card" onclick="window.location.href='/profile?user=${m.nickname}&name=${encodeURIComponent(m.displayName)}'" style="position: relative; border-color: transparent; transition: 0.3s; cursor: pointer;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='transparent'">
                     <div class="avatar" style="background: ${color}22; color: ${color}; border: 2px solid ${color}; box-shadow: 0 0 15px ${color}44; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 10px;">${m.avatar}</div>
                     <p>${m.displayName}</p>
                     
@@ -280,8 +284,21 @@
 
         // Voice Command Handling
         function startListening() {
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) {
+                alert(isHindi ? "आपका ब्राउज़र वॉइस सपोर्ट नहीं करता। कृपया Chrome का इस्तेमाल करें।" : "Your browser doesn't support voice recognition. Please use Chrome.");
+                return;
+            }
+            const recognition = new SpeechRec();
             recognition.lang = 'hi-IN';
+            
+            recognition.onerror = function(event) {
+                document.getElementById('jarvis-status').innerText = isHindi ? "माइक्रोफ़ोन एरर ❌" : "Microphone Error ❌";
+                if (event.error === 'not-allowed') {
+                    alert(isHindi ? "ब्राउज़र में माइक्रोफ़ोन की परमिशन (Microphone Permission) चालू करें!" : "Please allow microphone permission in your browser settings (Click the lock icon in the URL bar)!");
+                }
+            };
+
             recognition.start();
             document.getElementById('jarvis-status').innerText = isHindi ? "सुन रही हूँ..." : "Listening...";
 
@@ -314,7 +331,7 @@
                 // Database se match karke dekho ki kis member ka naam liya gaya hai
                 let matchedMember = null;
                 for(let m of vaultMembers) {
-                    if(cmd.includes(m.nickname.toLowerCase()) || cmd.includes(m.name.toLowerCase())) {
+                    if(cmd.includes(m.name.toLowerCase()) || (m.displayName && cmd.includes(m.displayName.toLowerCase()))) {
                         matchedMember = m;
                         break;
                     }
@@ -323,14 +340,14 @@
                 if(matchedMember) {
                     // NAYA: Agar Nickname change karne ko bola gaya hai
                     if (cmd.includes("naam badal") || cmd.includes("naam change") || cmd.includes("nickname")) {
-                        speak(isHindi ? `ठीक है, ${matchedMember.nickname} का नया नाम टाइप करें।` : `Alright, type the new name for ${matchedMember.nickname}.`);
+                        speak(isHindi ? `ठीक है, ${matchedMember.displayName} का नया नाम टाइप करें।` : `Alright, type the new name for ${matchedMember.displayName}.`);
                         openEditSetup(matchedMember.nickname, matchedMember.name, null);
                         return;
                     }
 
                     // Agar command mein "download" bola gaya hai
                     if (cmd.includes("download") || cmd.includes("daunlod")) {
-                        speak("Ji, " + matchedMember.nickname + " ka document dhoondh rahi hoon...");
+                        speak("Ji, " + matchedMember.displayName + " ka document dhoondh rahi hoon...");
                         
                         // Backend se us member ke documents mangwao
                         fetch('/api/docs/' + matchedMember.nickname)
@@ -356,14 +373,14 @@
                                     a.click();
                                     document.body.removeChild(a);
                                 } else {
-                                    speak("Maaf kijiye, mujhe " + matchedMember.nickname + " ki profile mein ye document nahi mila.");
+                                    speak("Maaf kijiye, mujhe " + matchedMember.displayName + " ki profile mein ye document nahi mila.");
                                 }
                             });
                     } else {
                         // Agar sirf naam bola, toh uski profile kholo
-                        speak("Ji, " + matchedMember.nickname + " ki profile khol rahi hoon.");
+                        speak("Ji, " + matchedMember.displayName + " ki profile khol rahi hoon.");
                         setTimeout(() => {
-                            window.location.href = '/profile?user=' + matchedMember.nickname;
+                            window.location.href = `/profile?user=${matchedMember.nickname}&name=${encodeURIComponent(matchedMember.displayName)}`;
                         }, 1500);
                     }
                 } else {

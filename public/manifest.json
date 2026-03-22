@@ -1,0 +1,16 @@
+{
+  "name": "Family Vault",
+  "short_name": "Vault",
+  "description": "Secure AI-Powered Family Document Vault",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2913/2913409.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
