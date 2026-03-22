@@ -10,6 +10,22 @@
     <!-- Face API Library -->
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --border-main: #334155;
+            --input-bg: #0f172a;
+        }
+        [data-theme="light"] {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --border-main: #cbd5e1;
+            --input-bg: #f1f5f9;
+        }
+
         /* Liquid Glass Theme Basics */
         body {
             margin: 0; padding: 0; min-height: 100vh;
@@ -38,14 +54,14 @@
         .lang-btn:hover { background: rgba(255,255,255,0.3); }
         
         /* --- PROFESSIONAL CLEAN THEME OVERRIDES --- */
-        body { background: #0f172a !important; color: #f8fafc; font-family: 'Poppins', sans-serif !important; }
+        body { background: var(--bg-main) !important; color: var(--text-main); font-family: 'Poppins', sans-serif !important; transition: background 0.3s, color 0.3s; }
         .liquid-bg, .orb { display: none !important; }
-        .glass-card { background: #1e293b !important; border: 1px solid #334155 !important; border-radius: 16px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3) !important; backdrop-filter: none !important; }
+        .glass-card { background: var(--bg-card) !important; border: 1px solid var(--border-main) !important; border-radius: 16px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; backdrop-filter: none !important; transition: 0.3s; }
         .btn-glow { font-family: 'Outfit', sans-serif !important; background: #3b82f6 !important; border-radius: 8px !important; box-shadow: none !important; transition: 0.2s; font-weight: 600; width: 100%; padding: 12px; border: none; color: white; font-size: 1.1rem; cursor: pointer; letter-spacing: 0.5px; }
         .btn-glow:hover { background: #2563eb !important; }
-        .pin-input { font-family: 'Space Mono', monospace !important; background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; border-radius: 8px !important; width: 80%; padding: 12px; margin-bottom: 15px; text-align: center; font-size: 1.2rem; letter-spacing: 5px; outline: none; }
+        .pin-input { font-family: 'Space Mono', monospace !important; background: var(--input-bg) !important; border: 1px solid var(--border-main) !important; color: var(--text-main) !important; border-radius: 8px !important; width: 80%; padding: 12px; margin-bottom: 15px; text-align: center; font-size: 1.2rem; letter-spacing: 5px; outline: none; transition: 0.3s; }
         .pin-input:focus { border-color: #3b82f6 !important; }
-        .neon-text { font-family: 'Outfit', sans-serif !important; text-shadow: none !important; color: #f8fafc !important; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 25px; letter-spacing: 1px; }
+        .neon-text { font-family: 'Outfit', sans-serif !important; text-shadow: none !important; color: var(--text-main) !important; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 25px; letter-spacing: 1px; }
         
         /* PROFESSIONAL SCANNER UI */
         .cam-container { position: relative; border-radius: 50% !important; border: 4px solid #3b82f6 !important; width: 200px !important; height: 200px !important; margin: 0 auto 25px !important; box-shadow: 0 0 30px rgba(59,130,246,0.3) !important; overflow: hidden; }
@@ -60,6 +76,7 @@
     </div>
 
     <div class="glass-card">
+        <button onclick="toggleTheme()" style="position: absolute; top: 15px; right: 80px; background: rgba(128,128,128,0.2); border: 1px solid var(--border-main); color: var(--text-main); padding: 5px 10px; border-radius: 20px; cursor: pointer; z-index: 10;" title="Toggle Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>
         <button class="lang-btn" onclick="toggleLang()">अ / A</button>
 
         <h1 class="neon-text" data-en="<i class='fa-solid fa-vault'></i> Family Vault" data-hi="<i class='fa-solid fa-vault'></i> परिवार तिजोरी"><i class="fa-solid fa-vault"></i> Family Vault</h1>
@@ -86,6 +103,13 @@
     </div>
 
     <script>
+        // Theme Toggle Logic
+        function toggleTheme() {
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
         // Language Toggle Logic
         let isHindi = false;
         function toggleLang() {

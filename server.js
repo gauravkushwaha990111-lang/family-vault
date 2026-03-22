@@ -331,7 +331,9 @@ app.delete('/api/members/:nickname', async (req, res) => {
             const urlParts = doc.fileUrl.split('/');
             const folderAndFile = urlParts.slice(-2).join('/');
             const publicId = folderAndFile.replace(/\.[^/.]+$/, "");
+        try {
             await cloudinary.uploader.destroy(publicId);
+        } catch(e) { console.log("Cloudinary image missing, proceeding with DB deletion."); }
         }
 
         // 3. Database se iske saare documents delete karo
