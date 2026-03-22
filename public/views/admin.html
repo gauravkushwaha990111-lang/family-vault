@@ -303,11 +303,24 @@
                         <img src="${i.photoUrl}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; margin-bottom:5px;">
                         <br><b style="font-size:0.7rem; color:#ff4b2b;">Tried: ${i.attemptedName}</b>
                         <br><span style="font-size:0.6rem; color:gray;">${new Date(i.timestamp).toLocaleDateString()}</span>
+                        <br><button onclick="downloadIntruderPic('${i.photoUrl}', '${i.attemptedName}', event)" style="background:#00f2fe; color:black; border:none; padding:3px 8px; border-radius:5px; margin-top:5px; cursor:pointer; font-size:0.7rem; font-family:'Poppins', sans-serif; font-weight:bold;" title="Download Photo"><i class="fa-solid fa-download"></i> Save</button>
                     </div>
                 `).join('');
             } else {
                 document.getElementById('intruders-list').innerHTML = `<p style="color:gray; font-size:0.8rem;">No intruders detected.</p>`;
             }
+        }
+
+        // Intruder ki photo download karne ka logic
+        function downloadIntruderPic(url, name, event) {
+            event.stopPropagation();
+            const downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = "Intruder_" + name + ".jpg";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         async function loadBin() {
