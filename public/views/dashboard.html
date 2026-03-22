@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    <!-- Cropper.js Library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <!-- PWA Setup -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -135,6 +138,18 @@
         </div>
     </div>
 
+    <!-- Naya Crop Modal -->
+    <div id="cropModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--modal-bg); z-index:300; justify-content:center; align-items:center; flex-direction:column; padding: 20px; box-sizing: border-box;">
+        <div class="glass-card" style="width: 100%; max-width: 400px; padding: 15px;">
+            <h3 class="neon-text" data-en="Crop Profile Photo" data-hi="प्रोफ़ाइल फोटो क्रॉप करें">Crop Profile Photo</h3>
+            <div style="width: 100%; max-height: 60vh; overflow: hidden; margin-bottom: 15px; border-radius: 10px; background: #000;">
+                <img id="crop-image" style="max-width: 100%; display: block;">
+            </div>
+            <button onclick="uploadCroppedAvatar()" class="btn-glow" id="crop-btn" data-en="<i class='fa-solid fa-cloud-arrow-up'></i> Upload" data-hi="<i class='fa-solid fa-cloud-arrow-up'></i> अपलोड करें"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
+            <button onclick="closeCropModal()" style="background:none; border:none; color:white; margin-top:15px; cursor:pointer; width: 100%;" data-en="Cancel" data-hi="रद्द करें">Cancel</button>
+        </div>
+    </div>
+
     <script>
         function toggleTheme() {
             const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
@@ -254,20 +269,49 @@
             targetAvatarUser = nickname;
             document.getElementById('avatar-upload-input').click(); // File picker kholo
         }
-        async function submitAvatarUpload(input) {
+        
+        let cropper;
+        function closeCropModal() {
+            document.getElementById('cropModal').style.display = 'none';
+            if (cropper) { cropper.destroy(); cropper = null; }
+            document.getElementById('avatar-upload-input').value = "";
+        }
+
+        function submitAvatarUpload(input) {
             if (!input.files || !input.files[0]) return;
-            const formData = new FormData();
-            formData.append('avatar', input.files[0]);
-            formData.append('nickname', targetAvatarUser);
-            
-            alert(isHindi ? "प्रोफ़ाइल फोटो अपलोड हो रही है, कृपया प्रतीक्षा करें..." : "Uploading profile photo, please wait...");
-            try {
-                const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) window.location.reload();
-                else alert(isHindi ? "त्रुटि: " + data.message : "Error: " + data.message);
-            } catch (err) { alert(isHindi ? "सर्वर त्रुटि!" : "Server Error!"); }
-            input.value = ""; 
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('crop-image').src = e.target.result;
+                document.getElementById('cropModal').style.display = 'flex';
+                
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(document.getElementById('crop-image'), {
+                    aspectRatio: 1, // 1:1 perfect square/circle
+                    viewMode: 1,
+                    autoCropArea: 1,
+                });
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        async function uploadCroppedAvatar() {
+            if (!cropper) return;
+            const btn = document.getElementById('crop-btn');
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Uploading...";
+            btn.disabled = true;
+
+            cropper.getCroppedCanvas({ width: 500, height: 500 }).toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('avatar', blob, 'avatar.jpg');
+                formData.append('nickname', targetAvatarUser);
+                try {
+                    const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.success) window.location.reload();
+                    else { alert(data.message); btn.innerHTML = oldHtml; btn.disabled = false; }
+                } catch (err) { alert("Server Error!"); btn.innerHTML = oldHtml; btn.disabled = false; }
+            }, 'image/jpeg', 0.8);
         }
 
         async function submitEditProfile() {

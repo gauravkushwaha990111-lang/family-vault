@@ -50,9 +50,6 @@ const avatarStorage = new CloudinaryStorage({
     params: {
         folder: 'Kushwaha_Vault_Avatars',
         allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-        transformation: [
-            { width: 500, height: 500, crop: "fill", gravity: "face" } // Perfect square face zoom
-        ]
     },
 });
 const uploadAvatar = multer({ storage: avatarStorage });

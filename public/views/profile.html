@@ -169,11 +169,11 @@
             <h3 class="neon-text" data-en="Document Name" data-hi="दस्तावेज़ का नाम">Document Name</h3>
             <input type="text" id="customDocName" placeholder="E.g. PAN Card, Aadhar" data-en-place="E.g. PAN Card, Aadhar" data-hi-place="जैसे: पैन कार्ड, आधार" class="pin-input">
             
-            <select id="customCategory" class="pin-input" style="font-family: 'Poppins', sans-serif;">
-            
             <input type="text" id="customDocNumber" placeholder="Doc Number (Optional)" data-en-place="Doc Number (Optional)" data-hi-place="दस्तावेज़ संख्या (वैकल्पिक)" class="pin-input">
             <div style="text-align: left; width: 100%; font-size: 0.8rem; color: gray; margin-bottom: 5px;" data-en="Expiry Date (Optional)" data-hi="समाप्ति तिथि (वैकल्पिक)">Expiry Date (Optional)</div>
             <input type="date" id="customExpiryDate" class="pin-input" style="font-family: 'Poppins', sans-serif;">
+
+            <select id="customCategory" class="pin-input" style="font-family: 'Poppins', sans-serif;">
                 <option value="ID Proof">ID Proof</option>
                 <option value="Medical">Medical</option>
                 <option value="Finance">Finance</option>
@@ -206,7 +206,6 @@
         }
         applyLang();
 
-        // AI Bolne ki settings
         function speak(text) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
@@ -214,65 +213,68 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        // URL se member ka nickname nikalein (e.g. ?user=Golu)
         const urlParams = new URLSearchParams(window.location.search);
         const nickname = urlParams.get('user');
-        const displayName = urlParams.get('name') || nickname; // Asli naam nikalo
-        const actionParam = urlParams.get('action'); // Auto-action trigger
+        const displayName = urlParams.get('name') || nickname;
+        const actionParam = urlParams.get('action');
         const docNameParam = urlParams.get('docName'); 
 
+        let globalDocs = [];
+        let docsRendered = false;
+
         if (!nickname) {
-            window.location.href = '/dashboard'; // URL me user nahi hone par wapas bhejo (Loading screen fix)
+            window.location.href = '/dashboard';
         } else {
             document.getElementById('profile-name').innerText = displayName + (isHindi ? " की तिजोरी" : "'s Vault");
             document.getElementById('profile-nick').innerText = "All secure documents.";
             
-            let globalDocs = []; // Search / Filter karne ke liye global list
-            let docsRendered = false;
-
-            // ⚡ SUPERFAST CACHE: Pehle phone ki memory se documents load karo (0-second load)
             const cachedDocs = localStorage.getItem('docs_' + nickname);
             if (cachedDocs) {
-                globalDocs = JSON.parse(cachedDocs);
-                renderDocs(globalDocs);
-                handleAutoActions();
-                docsRendered = true;
+                try {
+                    globalDocs = JSON.parse(cachedDocs);
+                    renderDocs(globalDocs);
+                    handleAutoActions();
+                    docsRendered = true;
+                } catch(e) {
+                    localStorage.removeItem('docs_' + nickname);
+                }
             }
 
-            // Backend API se is member ke documents dhoondhein
             fetch('/api/docs/' + nickname)
                 .then(res => res.json())
                 .then(docs => {
-                    localStorage.setItem('docs_' + nickname, JSON.stringify(docs)); // Naya data memory me save karo
+                    localStorage.setItem('docs_' + nickname, JSON.stringify(docs));
                     globalDocs = docs;
                     renderDocs(globalDocs);
                     if (!docsRendered) handleAutoActions();
+                })
+                .catch(e => {
+                    console.log("Fetch error: ", e);
+                    document.getElementById('docs-container').innerHTML = `<p style="color:red;">Error loading docs.</p>`;
                 });
         }
 
-        // Naya Auto-Action Logic (Jarvis Command Execution)
         function handleAutoActions() {
             if (!actionParam) return;
             setTimeout(() => {
                 if (actionParam === 'upload') {
                     openUploadModal();
                     if (docNameParam) {
-                        // Padhne me accha lage isliye First letters ko Capital banayega
                         document.getElementById('customDocName').value = docNameParam.replace(/\b\w/g, c => c.toUpperCase());
                     }
                     speak(isHindi ? "अपना दस्तावेज़ चुनें और अपलोड करें।" : "Please select and upload your document.");
                 } else if (actionParam === 'open') {
-                    if (!globalDocs || globalDocs.length === 0) return;
+                    if (!globalDocs || globalDocs.length === 0) {
+                        speak(isHindi ? "माफ़ कीजिये, यहाँ कोई दस्तावेज़ नहीं है।" : "Sorry, no documents here.");
+                        return;
+                    }
                     let found = null;
                     if (docNameParam) found = globalDocs.find(d => d.docName.toLowerCase().includes(docNameParam.toLowerCase()));
-                    
                     if (found) { openLightbox(found.fileUrl); } 
                     else { speak(isHindi ? "माफ़ कीजिये, यह दस्तावेज़ नहीं मिला।" : "Sorry, I couldn't find this document."); }
                 }
-                
-                // Ek baar run hone ke baad URL saaf kar do taaki page refresh par wapas trigger na ho
                 window.history.replaceState({}, document.title, window.location.pathname + "?user=" + nickname + "&name=" + encodeURIComponent(displayName));
-            }, 500); // Loading ke baad 0.5s ka delay taaki animation dikh sake
+            }, 500);
         }
 
         let activeCategory = 'All';
@@ -283,7 +285,6 @@
             filterDocs();
         }
 
-        // Document Render & Search Logic
         function renderDocs(docs) {
             const container = document.getElementById('docs-container');
             if (docs.length > 0) {
@@ -292,30 +293,30 @@
                     if (d.expiryDate) {
                         const daysLeft = Math.ceil((new Date(d.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
                         if (daysLeft < 0) {
-                            alertText = \`<div style="color: #ef4444; font-size: 0.75rem; margin-top: 5px; font-weight: bold; animation: blinkAlert 1s infinite;"><i class="fa-solid fa-triangle-exclamation"></i> \${isHindi ? 'समाप्त!' : 'Expired!'}</div>\`;
+                            alertText = `<div style="color: #ef4444; font-size: 0.75rem; margin-top: 5px; font-weight: bold; animation: blinkAlert 1s infinite;"><i class="fa-solid fa-triangle-exclamation"></i> ${isHindi ? 'समाप्त!' : 'Expired!'}</div>`;
                         } else if (daysLeft <= 30) {
-                            alertText = \`<div style="color: #f59e0b; font-size: 0.75rem; margin-top: 5px; font-weight: bold; animation: blinkAlert 1.5s infinite;"><i class="fa-solid fa-clock"></i> \${daysLeft} \${isHindi ? 'दिन बाकी' : 'Days Left'}</div>\`;
+                            alertText = `<div style="color: #f59e0b; font-size: 0.75rem; margin-top: 5px; font-weight: bold; animation: blinkAlert 1.5s infinite;"><i class="fa-solid fa-clock"></i> ${daysLeft} ${isHindi ? 'दिन बाकी' : 'Days Left'}</div>`;
                         }
                     }
                     let copyBtn = '';
                     if (d.docNumber) {
-                        copyBtn = \`<button class="copy-btn" onclick="copyDocNumber('\${d.docNumber}', event)" title="Copy Number"><i class="fa-regular fa-copy"></i></button>\`;
+                        copyBtn = `<button class="copy-btn" onclick="copyDocNumber('${d.docNumber}', event)" title="Copy Number"><i class="fa-regular fa-copy"></i></button>`;
                     }
-                    return \`
+                    return `
                         <div class="doc-card" style="position: relative;" onclick="openLightbox('${d.fileUrl}')">
                             <button class="delete-btn" onclick="deleteDocument('${d._id}', event)"><i class="fa-solid fa-trash"></i></button>
                             <button class="download-btn" onclick="downloadDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-download"></i></button>
                             <button class="share-btn" onclick="shareDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-share-nodes"></i></button>
                             <button class="whatsapp-btn" onclick="shareWhatsApp('${d.fileUrl}', '${d.docName}', event)" title="Share on WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
-                            \${copyBtn}
+                            ${copyBtn}
                             <div style="position: absolute; top: 5px; left: 5px; background: #3b82f6; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px;">${d.category || 'Other'}</div>
                             <i class="fa-solid ${d.fileUrl.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} fa-2x" style="margin-bottom: 8px;"></i><br><b>${d.docName}</b>
-                            \${alertText}
+                            ${alertText}
                         </div>
-                    \`;
+                    `;
                 }).join('');
             } else {
-                container.innerHTML = `<p style="color: gray;" data-en="No documents uploaded yet." data-hi="अभी कोई दस्तावेज़ नहीं है।">${isHindi ? 'अभी कोई दस्तावेज़ नहीं है।' : 'No documents uploaded yet.'}</p>`;
+                container.innerHTML = `<p style="color: gray;">${isHindi ? 'अभी कोई दस्तावेज़ नहीं है।' : 'No documents uploaded yet.'}</p>`;
             }
         }
 
@@ -329,7 +330,6 @@
             renderDocs(filtered);
         }
 
-        // 👇 BULK DOWNLOAD LOGIC 👇
         function downloadAllDocs() {
             if(globalDocs.length === 0) {
                 alert(isHindi ? "डाउनलोड करने के लिए कोई दस्तावेज़ नहीं है!" : "No documents to download!");
@@ -349,18 +349,14 @@
                     a.click();
                     document.body.removeChild(a);
                 }, delay);
-                delay += 800; // 800ms gap taaki browser download block na kare
+                delay += 800;
             });
         }
 
-        // 👇 Lightbox Logic (Photo Preview) 👇
         function openLightbox(url) {
             let previewUrl = url;
             if (url.toLowerCase().endsWith('.pdf')) {
-                // Cloudinary Magic: PDF ko image ki tarah preview karne ke liye URL ko .jpg bana do
                 previewUrl = url.substring(0, url.lastIndexOf('.')) + '.jpg';
-                
-                // Full PDF open karne wala button dikhao
                 document.getElementById('lightboxPdfBtn').style.display = 'block';
                 document.getElementById('lightboxPdfBtn').href = url;
             } else {
@@ -374,9 +370,8 @@
             document.getElementById('lightboxImg').src = '';
         }
 
-        // 👇 Modal Control Logic 👇
         function openUploadModal() {
-            document.getElementById('customDocName').value = ''; // Purana likha hua saaf karein
+            document.getElementById('customDocName').value = ''; 
             document.getElementById('customDocNumber').value = '';
             document.getElementById('customExpiryDate').value = '';
             document.getElementById('uploadModal').style.display = 'flex';
@@ -390,10 +385,9 @@
                 alert(isHindi ? "कृपया पहले दस्तावेज़ का नाम लिखें!" : "Please enter the document name first!");
                 return;
             }
-            document.getElementById('camera-input').click(); // File picker kholo
+            document.getElementById('camera-input').click(); 
         }
 
-        // 👇 NAYA UPLOAD LOGIC YAHAN HAI 👇
         async function uploadPhoto(input) {
             if (!input.files || !input.files[0]) return;
             const file = input.files[0];
@@ -402,18 +396,16 @@
             const docCategory = document.getElementById('customCategory').value;
             const docNumber = document.getElementById('customDocNumber').value.trim();
             const docExpiry = document.getElementById('customExpiryDate').value;
-            closeUploadModal(); // Upload process shuru hote hi modal band kar do
+            closeUploadModal();
 
-            // UI update: Uploading dikhayein
             const btn = document.getElementById('upload-btn');
-            const oldHtml = btn.innerHTML; // Ab innerHTML lenge
+            const oldHtml = btn.innerHTML; 
             btn.innerHTML = isHindi ? "<i class='fa-solid fa-spinner fa-spin'></i> क्लाउड पर जा रहा है..." : "<i class='fa-solid fa-spinner fa-spin'></i> Uploading to Cloud...";
             btn.disabled = true;
 
-            // Form data banayein
             const formData = new FormData();
             formData.append('document', file);
-            formData.append('nickname', nickname); // Upar wale URL se nikala gaya profile ka naam
+            formData.append('nickname', nickname); 
             formData.append('docName', docName);
             formData.append('category', docCategory);
             if (docNumber) formData.append('docNumber', docNumber);
@@ -425,7 +417,7 @@
                 
                 if(data.success) {
                     alert(isHindi ? "दस्तावेज़ सुरक्षित रूप से सहेज लिया गया!" : "Document safely saved in Vault!");
-                    window.location.reload(); // Page refresh karke naya doc screen par layein
+                    window.location.reload(); 
                 } else {
                     alert((isHindi ? "त्रुटि: " : "Error: ") + data.message);
                 }
@@ -437,9 +429,8 @@
             }
         }
 
-        // 👇 DELETE DOCUMENT LOGIC 👇
         async function deleteDocument(docId, event) {
-            event.stopPropagation(); // Isse card open hone se ruk jayega, sirf delete logic chalega
+            event.stopPropagation(); 
             
             const confirmDelete = confirm(isHindi ? "क्या आप सच में इस दस्तावेज़ को हटाना चाहते हैं?" : "Are you sure you want to delete this document?");
             if (!confirmDelete) return;
@@ -448,7 +439,7 @@
                 const res = await fetch('/api/docs/' + docId, { method: 'DELETE' });
                 const data = await res.json();
                 if(data.success) {
-                    window.location.reload(); // Delete hone ke baad list turant refresh ho jayegi
+                    window.location.reload(); 
                 } else {
                     alert((isHindi ? "त्रुटि: " : "Error: ") + data.message);
                 }
@@ -457,12 +448,9 @@
             }
         }
 
-        // 👇 DOWNLOAD DOCUMENT LOGIC 👇
         function downloadDoc(url, name, event) {
-            event.stopPropagation(); // Card ko open hone se rokna
-            // Cloudinary API trick: URL mein 'fl_attachment' daalne se file direct download ho jati hai
+            event.stopPropagation(); 
             const downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
-            
             const a = document.createElement('a');
             a.href = downloadUrl;
             a.download = name;
@@ -471,40 +459,34 @@
             document.body.removeChild(a);
         }
 
-        // 👇 SHARE DOCUMENT LOGIC 👇
         function shareDoc(url, name, event) {
             event.stopPropagation();
-            if (navigator.share) { // Mobile Browser support
+            if (navigator.share) { 
                 navigator.share({
                     title: 'Family Vault Document',
                     text: `Family Vault Se Document Bheja Gaya Hai: ${name}`,
                     url: url
                 }).catch(err => console.log('Share error:', err));
-            } else { // PC Browser support
-                // QR Code Generate Karo
-                document.getElementById('qrcode').innerHTML = ""; // Purana saaf karo
+            } else { 
+                document.getElementById('qrcode').innerHTML = ""; 
                 new QRCode(document.getElementById("qrcode"), { text: url, width: 200, height: 200 });
                 document.getElementById('qrModal').style.display = 'flex';
             }
         }
 
-        // 👇 WHATSAPP SHARE LOGIC 👇
         function shareWhatsApp(url, name, event) {
             event.stopPropagation();
-            // WhatsApp link format generate karna
             const message = encodeURIComponent(`Family Vault Se Document Bheja Gaya Hai: *${name}*\n\n🔗 Link: ${url}`);
             const whatsappUrl = `https://api.whatsapp.com/send?text=${message}`;
-            window.open(whatsappUrl, '_blank'); // Naye tab me WhatsApp khol dega
+            window.open(whatsappUrl, '_blank'); 
         }
 
-        // 👇 COPY DOC NUMBER LOGIC 👇
         function copyDocNumber(num, event) {
             event.stopPropagation();
             navigator.clipboard.writeText(num);
             alert(isHindi ? "दस्तावेज़ संख्या कॉपी हो गई: " + num : "Document number copied: " + num);
         }
 
-        // 👇 PANIC LOCK LOGIC 👇
         function panicLock() {
             fetch('/api/logout').then(() => window.location.href = '/');
         }
