@@ -76,6 +76,26 @@
         .whatsapp-btn:hover { background: #128C7E; transform: scale(1.1); }
         .cat-btn { background: var(--input-bg); border: 1px solid var(--border-main); color: var(--text-main); padding: 5px 12px; border-radius: 15px; cursor: pointer; white-space: nowrap; transition: 0.3s; font-family: 'Poppins', sans-serif; font-size: 0.85rem;}
         .cat-btn.active, .cat-btn:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
+        
+        .copy-btn { position: absolute; bottom: -5px; left: 25px; background: #8b5cf6; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 12px; z-index: 10; transition: 0.3s;}
+        .copy-btn:hover { background: #7c3aed; transform: scale(1.1); }
+        @keyframes blinkAlert { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* --- MOBILE SCREEN OPTIMIZATION 📱 --- */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .glass-card { padding: 15px; }
+            #profile-name { margin-top: 45px !important; font-size: 1.4rem; }
+            
+            /* Phone par perfect 2-column grid aur bade cards */
+            .docs-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .doc-card { padding: 15px 10px; }
+            .doc-card b { font-size: 0.85rem; }
+            
+            /* Tapping asaan karne ke liye buttons thode bade */
+            .share-btn, .whatsapp-btn, .download-btn, .delete-btn, .copy-btn { width: 30px; height: 30px; font-size: 14px; }
+            .cat-btn { padding: 6px 12px; font-size: 0.8rem; }
+        }
     </style>
     <script>
         // Apply theme immediately
@@ -86,6 +106,9 @@
     <!-- Language Toggle -->
     <button class="lang-btn" onclick="toggleLang()">अ / A</button>
     <button onclick="toggleTheme()" style="position:absolute; top:15px; right:80px; background:rgba(128,128,128,0.2); border:1px solid var(--border-main); color:var(--text-main); padding:5px 10px; border-radius:20px; cursor:pointer; z-index:10;" title="Toggle Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>
+
+    <!-- Panic Lock Button -->
+    <button onclick="panicLock()" style="position: fixed; bottom: 20px; right: 20px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 55px; height: 55px; font-size: 22px; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); cursor: pointer; z-index: 1000; transition: 0.3s;" title="Panic Lock"><i class="fa-solid fa-power-off"></i></button>
 
     <div class="liquid-bg"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
 
@@ -147,6 +170,10 @@
             <input type="text" id="customDocName" placeholder="E.g. PAN Card, Aadhar" data-en-place="E.g. PAN Card, Aadhar" data-hi-place="जैसे: पैन कार्ड, आधार" class="pin-input">
             
             <select id="customCategory" class="pin-input" style="font-family: 'Poppins', sans-serif;">
+            
+            <input type="text" id="customDocNumber" placeholder="Doc Number (Optional)" data-en-place="Doc Number (Optional)" data-hi-place="दस्तावेज़ संख्या (वैकल्पिक)" class="pin-input">
+            <div style="text-align: left; width: 100%; font-size: 0.8rem; color: gray; margin-bottom: 5px;" data-en="Expiry Date (Optional)" data-hi="समाप्ति तिथि (वैकल्पिक)">Expiry Date (Optional)</div>
+            <input type="date" id="customExpiryDate" class="pin-input" style="font-family: 'Poppins', sans-serif;">
                 <option value="ID Proof">ID Proof</option>
                 <option value="Medical">Medical</option>
                 <option value="Finance">Finance</option>
@@ -166,12 +193,18 @@
             localStorage.setItem('theme', newTheme);
         }
 
-        let isHindi = false;
-        function toggleLang() {
-            isHindi = !isHindi;
+        let isHindi = localStorage.getItem('lang') === 'hi';
+        function applyLang() {
             const attr = isHindi ? 'data-hi' : 'data-en';
             document.querySelectorAll('[data-en]').forEach(el => el.innerHTML = el.getAttribute(attr));
+            document.querySelectorAll('[data-en-place]').forEach(el => el.placeholder = el.getAttribute(isHindi ? 'data-hi-place' : 'data-en-place'));
         }
+        function toggleLang() {
+            isHindi = !isHindi;
+            localStorage.setItem('lang', isHindi ? 'hi' : 'en');
+            applyLang();
+        }
+        applyLang();
 
         // URL se member ka nickname nikalein (e.g. ?user=Golu)
         const urlParams = new URLSearchParams(window.location.search);
@@ -205,16 +238,33 @@
         function renderDocs(docs) {
             const container = document.getElementById('docs-container');
             if (docs.length > 0) {
-                container.innerHTML = docs.map(d => `
-                    <div class="doc-card" style="position: relative;" onclick="openLightbox('${d.fileUrl}')">
-                        <button class="delete-btn" onclick="deleteDocument('${d._id}', event)"><i class="fa-solid fa-trash"></i></button>
-                        <button class="download-btn" onclick="downloadDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-download"></i></button>
-                        <button class="share-btn" onclick="shareDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-share-nodes"></i></button>
-                        <button class="whatsapp-btn" onclick="shareWhatsApp('${d.fileUrl}', '${d.docName}', event)" title="Share on WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
-                        <div style="position: absolute; top: 5px; left: 5px; background: #3b82f6; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px;">${d.category || 'Other'}</div>
-                        <i class="fa-solid ${d.fileUrl.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} fa-2x" style="margin-bottom: 8px;"></i><br><b>${d.docName}</b>
-                    </div>
-                `).join('');
+                container.innerHTML = docs.map(d => {
+                    let alertText = '';
+                    if (d.expiryDate) {
+                        const daysLeft = Math.ceil((new Date(d.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                        if (daysLeft < 0) {
+                            alertText = \`<div style="color: #ef4444; font-size: 0.75rem; margin-top: 5px; font-weight: bold; animation: blinkAlert 1s infinite;"><i class="fa-solid fa-triangle-exclamation"></i> \${isHindi ? 'समाप्त!' : 'Expired!'}</div>\`;
+                        } else if (daysLeft <= 30) {
+                            alertText = \`<div style="color: #f59e0b; font-size: 0.75rem; margin-top: 5px; font-weight: bold; animation: blinkAlert 1.5s infinite;"><i class="fa-solid fa-clock"></i> \${daysLeft} \${isHindi ? 'दिन बाकी' : 'Days Left'}</div>\`;
+                        }
+                    }
+                    let copyBtn = '';
+                    if (d.docNumber) {
+                        copyBtn = \`<button class="copy-btn" onclick="copyDocNumber('\${d.docNumber}', event)" title="Copy Number"><i class="fa-regular fa-copy"></i></button>\`;
+                    }
+                    return \`
+                        <div class="doc-card" style="position: relative;" onclick="openLightbox('${d.fileUrl}')">
+                            <button class="delete-btn" onclick="deleteDocument('${d._id}', event)"><i class="fa-solid fa-trash"></i></button>
+                            <button class="download-btn" onclick="downloadDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-download"></i></button>
+                            <button class="share-btn" onclick="shareDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-share-nodes"></i></button>
+                            <button class="whatsapp-btn" onclick="shareWhatsApp('${d.fileUrl}', '${d.docName}', event)" title="Share on WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
+                            \${copyBtn}
+                            <div style="position: absolute; top: 5px; left: 5px; background: #3b82f6; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px;">${d.category || 'Other'}</div>
+                            <i class="fa-solid ${d.fileUrl.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} fa-2x" style="margin-bottom: 8px;"></i><br><b>${d.docName}</b>
+                            \${alertText}
+                        </div>
+                    \`;
+                }).join('');
             } else {
                 container.innerHTML = `<p style="color: gray;" data-en="No documents uploaded yet." data-hi="अभी कोई दस्तावेज़ नहीं है।">${isHindi ? 'अभी कोई दस्तावेज़ नहीं है।' : 'No documents uploaded yet.'}</p>`;
             }
@@ -278,6 +328,8 @@
         // 👇 Modal Control Logic 👇
         function openUploadModal() {
             document.getElementById('customDocName').value = ''; // Purana likha hua saaf karein
+            document.getElementById('customDocNumber').value = '';
+            document.getElementById('customExpiryDate').value = '';
             document.getElementById('uploadModal').style.display = 'flex';
         }
         function closeUploadModal() {
@@ -299,6 +351,8 @@
             
             const docName = document.getElementById('customDocName').value.trim();
             const docCategory = document.getElementById('customCategory').value;
+            const docNumber = document.getElementById('customDocNumber').value.trim();
+            const docExpiry = document.getElementById('customExpiryDate').value;
             closeUploadModal(); // Upload process shuru hote hi modal band kar do
 
             // UI update: Uploading dikhayein
@@ -313,6 +367,8 @@
             formData.append('nickname', nickname); // Upar wale URL se nikala gaya profile ka naam
             formData.append('docName', docName);
             formData.append('category', docCategory);
+            if (docNumber) formData.append('docNumber', docNumber);
+            if (docExpiry) formData.append('expiryDate', docExpiry);
 
             try {
                 const res = await fetch('/api/upload', { method: 'POST', body: formData });
@@ -390,6 +446,18 @@
             const message = encodeURIComponent(`Family Vault Se Document Bheja Gaya Hai: *${name}*\n\n🔗 Link: ${url}`);
             const whatsappUrl = `https://api.whatsapp.com/send?text=${message}`;
             window.open(whatsappUrl, '_blank'); // Naye tab me WhatsApp khol dega
+        }
+
+        // 👇 COPY DOC NUMBER LOGIC 👇
+        function copyDocNumber(num, event) {
+            event.stopPropagation();
+            navigator.clipboard.writeText(num);
+            alert(isHindi ? "दस्तावेज़ संख्या कॉपी हो गई: " + num : "Document number copied: " + num);
+        }
+
+        // 👇 PANIC LOCK LOGIC 👇
+        function panicLock() {
+            fetch('/api/logout').then(() => window.location.href = '/');
         }
     </script>
 </body>

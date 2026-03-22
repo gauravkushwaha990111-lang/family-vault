@@ -69,6 +69,9 @@
     <button onclick="toggleTheme()" style="position: absolute; top: 15px; right: 90px; background: rgba(128,128,128,0.2); border: 1px solid var(--border-main); color: var(--text-main); padding: 5px 10px; border-radius: 20px; cursor: pointer; z-index: 10;" title="Toggle Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>
     <button onclick="toggleLang()" style="position: absolute; top: 15px; right: 15px; background: rgba(128,128,128,0.2); border: 1px solid var(--border-main); color: var(--text-main); padding: 5px 15px; border-radius: 20px; cursor: pointer; z-index: 10;">अ / A</button>
 
+    <!-- Panic Lock Button -->
+    <button onclick="lockVault()" style="position: fixed; bottom: 20px; right: 20px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 55px; height: 55px; font-size: 22px; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); cursor: pointer; z-index: 1000; transition: 0.3s;" title="Panic Lock"><i class="fa-solid fa-power-off"></i></button>
+
     <div class="glass-card" style="max-width: 600px; width: 100%; margin-top: 30px;">
         <h2 class="neon-text" data-en="<i class='fa-solid fa-user-shield'></i> Admin Vault" data-hi="<i class='fa-solid fa-user-shield'></i> एडमिन तिजोरी"><i class="fa-solid fa-user-shield"></i> Admin Vault</h2>
         <p id="jarvis-status" style="color: var(--neon-blue);" data-en="Admin Mode Active." data-hi="एडमिन मोड चालू।">Admin Mode Active.</p>
@@ -133,7 +136,7 @@
             <h3 class="neon-text" data-en="Add New Member" data-hi="नया सदस्य जोड़ें">Add New Member</h3>
             <input type="text" id="new-member-name" placeholder="Real Name" class="pin-input" required>
             <div class="cam-wrapper">
-                <video id="add-cam" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scale(1.2);"></video>
+                <video id="add-cam" autoplay playsinline style="width:100%; height:100%; object-fit:cover; object-position: center; transform: scaleX(-1);"></video>
                 <div class="scanner-line"></div>
             </div>
             <button onclick="addMemberWithFace()" class="btn-glow" id="add-capture-btn"><i class="fa-solid fa-camera"></i> Capture Face & Save</button>
@@ -145,7 +148,7 @@
     <div id="faceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--modal-bg); z-index:100; justify-content:center; align-items:center; flex-direction:column;">
         <h3 class="neon-text" id="face-setup-title">Setup Face ID</h3>
         <div class="cam-wrapper">
-            <video id="setup-cam" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scale(1.2);"></video>
+            <video id="setup-cam" autoplay playsinline style="width:100%; height:100%; object-fit:cover; object-position: center; transform: scaleX(-1);"></video>
             <div class="scanner-line"></div>
         </div>
         <button onclick="captureFaceData()" class="btn-glow" id="capture-btn" style="width: 250px;"><i class="fa-solid fa-camera"></i> Capture Face Data</button>
@@ -159,12 +162,18 @@
             localStorage.setItem('theme', newTheme);
         }
 
-        let isHindi = false;
-        function toggleLang() {
-            isHindi = !isHindi;
+        let isHindi = localStorage.getItem('lang') === 'hi';
+        function applyLang() {
             const attr = isHindi ? 'data-hi' : 'data-en';
             document.querySelectorAll('[data-en]').forEach(el => el.innerHTML = el.getAttribute(attr));
+            document.querySelectorAll('[data-en-place]').forEach(el => el.placeholder = el.getAttribute(isHindi ? 'data-hi-place' : 'data-en-place'));
         }
+        function toggleLang() {
+            isHindi = !isHindi;
+            localStorage.setItem('lang', isHindi ? 'hi' : 'en');
+            applyLang();
+        }
+        applyLang();
 
         window.onload = () => {
             loadIntruders();
@@ -176,7 +185,7 @@
 
         let modelsLoaded = false;
         async function loadAIModels() {
-            await faceapi.nets.ssdMobilenetv1.loadFromUri('https://vladmandic.github.io/face-api/model/');
+            await faceapi.nets.tinyFaceDetector.loadFromUri('https://vladmandic.github.io/face-api/model/');
             await faceapi.nets.faceLandmark68Net.loadFromUri('https://vladmandic.github.io/face-api/model/');
             await faceapi.nets.faceRecognitionNet.loadFromUri('https://vladmandic.github.io/face-api/model/');
             modelsLoaded = true;
@@ -198,10 +207,11 @@
             
             container.innerHTML = members.map((m, index) => {
                 const color = colors[index % colors.length];
+                const avatarHtml = m.profilePic ? `<img src="${m.profilePic}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : m.avatar;
                 return `
                 <div class="profile-card" onclick="window.location.href='/profile?user=${m.nickname}&name=${encodeURIComponent(m.displayName)}'" style="position: relative; border-color: transparent; transition: 0.3s; cursor: pointer;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='transparent'">
                     <button class="delete-btn" onclick="deleteProfile('${m.nickname}', '${m.displayName}', event)"><i class="fa-solid fa-trash"></i></button>
-                    <div class="avatar" style="background: ${color}22; color: ${color}; border: 2px solid ${color}; box-shadow: 0 0 15px ${color}44; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 10px;">${m.avatar}</div>
+                    <div class="avatar" style="background: ${color}22; color: ${color}; border: 2px solid ${color}; box-shadow: 0 0 15px ${color}44; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 10px; overflow: hidden;">${avatarHtml}</div>
                     <p>${m.displayName}</p>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 10px;">
                         <span style="font-size: 0.8rem; background: ${color}22; color: ${color}; padding: 3px 10px; border-radius: 12px; border: 1px solid ${color}55;">${m.docCount || 0} Docs</span>
@@ -281,11 +291,17 @@
             btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> AI Processing...";
             btn.disabled = true;
 
-            const detection = await faceapi.detectSingleFace(addVideo).withFaceLandmarks().withFaceDescriptor();
+            const detection = await faceapi.detectSingleFace(addVideo, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
 
             if (detection) {
                 const descriptor = Array.from(detection.descriptor);
-                const res = await fetch('/add-member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, descriptor }) });
+                // Canvas se photo nikalo
+                const canvas = document.createElement('canvas');
+                canvas.width = addVideo.videoWidth; canvas.height = addVideo.videoHeight;
+                canvas.getContext('2d').drawImage(addVideo, 0, 0, canvas.width, canvas.height);
+                const profilePic = canvas.toDataURL('image/jpeg', 0.5); // 50% Quality
+
+                const res = await fetch('/add-member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, descriptor, profilePic }) });
                 const data = await res.json();
                 if (data.success) { window.location.reload(); }
                 else { alert(data.message); } // Exists already alert
@@ -318,11 +334,17 @@
             btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> AI Processing...";
             btn.disabled = true;
 
-            const detection = await faceapi.detectSingleFace(setupVideo).withFaceLandmarks().withFaceDescriptor();
+            const detection = await faceapi.detectSingleFace(setupVideo, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
 
             if (detection) {
                 const descriptor = Array.from(detection.descriptor);
-                const res = await fetch('/api/register-face', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: currentSetupUser, descriptor }) });
+                // Canvas se photo nikalo
+                const canvas = document.createElement('canvas');
+                canvas.width = setupVideo.videoWidth; canvas.height = setupVideo.videoHeight;
+                canvas.getContext('2d').drawImage(setupVideo, 0, 0, canvas.width, canvas.height);
+                const profilePic = canvas.toDataURL('image/jpeg', 0.5); // 50% Quality
+
+                const res = await fetch('/api/register-face', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: currentSetupUser, descriptor, profilePic }) });
                 const data = await res.json();
                 if(data.success) { alert("Face ID Registered for " + currentSetupUser); closeFaceModal(); }
                 else { alert(data.message); }

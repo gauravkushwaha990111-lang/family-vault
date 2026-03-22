@@ -57,6 +57,7 @@ const memberSchema = new mongoose.Schema({
     nickname: String,  // Golu, Bade, etc.
     avatar: String,    // Pehla Letter
     faceData: [Number], // NAYA: AI Facial Data
+    profilePic: { type: String, default: '' }, // NAYA: Asli Face Photo
     customNames: { type: Map, of: String, default: {} } // Private Nicknames Map
 });
 const Member = mongoose.model('Member', memberSchema);
@@ -66,6 +67,8 @@ const docSchema = new mongoose.Schema({
     ownerNickname: String,
     docName: String,
     category: { type: String, default: 'Other' }, // Smart Categories
+    docNumber: { type: String, default: '' }, // One-Click Copy Number
+    expiryDate: { type: Date, default: null }, // Expiry Alert Date
     fileUrl: String,
     isDeleted: { type: Boolean, default: false }, // Recycle Bin Feature
     uploadDate: { type: Date, default: Date.now }
@@ -194,7 +197,7 @@ app.post('/api/face-login', async (req, res) => {
 app.post('/add-member', async (req, res) => {
     if (req.cookies.auth !== 'verified') return res.status(403).json({ success: false, message: "Unauthorized" });
     try {
-        const { name, descriptor } = req.body;
+        const { name, descriptor, profilePic } = req.body;
         const nickname = name.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now(); // Unique ID
 
         // 🛑 DUPLICATE FACE CHECK
@@ -209,6 +212,7 @@ app.post('/add-member', async (req, res) => {
             nickname,
             avatar: name.charAt(0).toUpperCase(),
             faceData: descriptor,
+            profilePic: profilePic || '',
             customNames: {}
         });
         await newMember.save();
@@ -251,7 +255,7 @@ app.post('/api/register-face', async (req, res) => {
         if(distance <= 0.55) return res.status(400).json({success: false, message: `Yeh chehra pehle se '${m.name}' ke naam se save hai!`});
     }
 
-    await Member.findOneAndUpdate({ nickname: req.body.nickname }, { faceData: req.body.descriptor });
+    await Member.findOneAndUpdate({ nickname: req.body.nickname }, { faceData: req.body.descriptor, profilePic: req.body.profilePic });
     res.json({ success: true, message: "Face Data successfully saved!" });
 });
 
@@ -275,12 +279,14 @@ app.get('/api/check-role', (req, res) => {
 app.post('/api/upload', upload.single('document'), async (req, res) => {
     if (req.cookies.auth !== 'verified') return res.status(403).json({ success: false, message: "Unauthorized!" });
     try {
-        const { nickname, docName, category } = req.body;
+        const { nickname, docName, category, docNumber, expiryDate } = req.body;
         
         const newDoc = new Document({
             ownerNickname: nickname,
             docName: docName,
             category: category || 'Other',
+            docNumber: docNumber || '',
+            expiryDate: expiryDate ? new Date(expiryDate) : null,
             fileUrl: req.file.path // Cloudinary ka link
         });
 
