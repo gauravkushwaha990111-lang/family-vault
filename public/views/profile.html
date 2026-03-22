@@ -68,6 +68,8 @@
         .download-btn:hover { background: #4facfe; transform: scale(1.1); }
         .share-btn { position: absolute; bottom: -5px; right: -5px; background: #00ff88; color: black; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; font-size: 12px; z-index: 10; transition: 0.3s;}
         .share-btn:hover { background: #00cc6a; transform: scale(1.1); }
+        .cat-btn { background: var(--input-bg); border: 1px solid var(--border-main); color: var(--text-main); padding: 5px 12px; border-radius: 15px; cursor: pointer; white-space: nowrap; transition: 0.3s; font-family: 'Poppins', sans-serif; font-size: 0.85rem;}
+        .cat-btn.active, .cat-btn:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
     </style>
     <script>
         // Apply theme immediately
@@ -96,6 +98,14 @@
             <button onclick="downloadAllDocs()" style="background: rgba(0, 242, 254, 0.2); border: 1px solid #00f2fe; color: #00f2fe; border-radius: 10px; padding: 0 15px; cursor: pointer; transition: 0.3s;" title="Download All">
                 <i class="fa-solid fa-download"></i> <span data-en="All" data-hi="सभी">All</span>
             </button>
+        </div>
+
+        <div id="category-filters" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 15px; padding-bottom: 5px;">
+            <button class="cat-btn active" onclick="filterByCategory('All', this)">All</button>
+            <button class="cat-btn" onclick="filterByCategory('ID Proof', this)">ID Proof</button>
+            <button class="cat-btn" onclick="filterByCategory('Medical', this)">Medical</button>
+            <button class="cat-btn" onclick="filterByCategory('Finance', this)">Finance</button>
+            <button class="cat-btn" onclick="filterByCategory('Education', this)">Education</button>
         </div>
 
         <div id="docs-container" class="docs-grid">
@@ -129,6 +139,14 @@
         <div class="glass-card" style="max-width:320px; width: 90%;">
             <h3 class="neon-text" data-en="Document Name" data-hi="दस्तावेज़ का नाम">Document Name</h3>
             <input type="text" id="customDocName" placeholder="E.g. PAN Card, Aadhar" data-en-place="E.g. PAN Card, Aadhar" data-hi-place="जैसे: पैन कार्ड, आधार" class="pin-input">
+            
+            <select id="customCategory" class="pin-input" style="font-family: 'Poppins', sans-serif;">
+                <option value="ID Proof">ID Proof</option>
+                <option value="Medical">Medical</option>
+                <option value="Finance">Finance</option>
+                <option value="Education">Education</option>
+                <option value="Other" selected>Other</option>
+            </select>
             
             <button onclick="triggerCamera()" class="btn-glow" data-en="<i class='fa-solid fa-camera'></i> Select & Upload" data-hi="<i class='fa-solid fa-camera'></i> चुनें और अपलोड करें"><i class="fa-solid fa-camera"></i> Select & Upload</button>
             <button onclick="closeUploadModal()" style="background:none; border:none; color:white; margin-top:15px; cursor:pointer; width: 100%;" data-en="Cancel" data-hi="रद्द करें">Cancel</button>
@@ -168,6 +186,14 @@
                 });
         }
 
+        let activeCategory = 'All';
+        function filterByCategory(cat, btnElement) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+            filterDocs();
+        }
+
         // Document Render & Search Logic
         function renderDocs(docs) {
             const container = document.getElementById('docs-container');
@@ -177,6 +203,7 @@
                         <button class="delete-btn" onclick="deleteDocument('${d._id}', event)"><i class="fa-solid fa-trash"></i></button>
                         <button class="download-btn" onclick="downloadDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-download"></i></button>
                         <button class="share-btn" onclick="shareDoc('${d.fileUrl}', '${d.docName}', event)"><i class="fa-solid fa-share-nodes"></i></button>
+                        <div style="position: absolute; top: 5px; left: 5px; background: #3b82f6; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px;">${d.category || 'Other'}</div>
                         <i class="fa-solid ${d.fileUrl.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} fa-2x" style="margin-bottom: 8px;"></i><br><b>${d.docName}</b>
                     </div>
                 `).join('');
@@ -187,7 +214,11 @@
 
         function filterDocs() {
             const query = document.getElementById('searchDoc').value.toLowerCase();
-            const filtered = globalDocs.filter(d => d.docName.toLowerCase().includes(query));
+            const filtered = globalDocs.filter(d => {
+                const matchesSearch = d.docName.toLowerCase().includes(query);
+                const matchesCat = activeCategory === 'All' || d.category === activeCategory;
+                return matchesSearch && matchesCat;
+            });
             renderDocs(filtered);
         }
 
@@ -259,6 +290,7 @@
             const file = input.files[0];
             
             const docName = document.getElementById('customDocName').value.trim();
+            const docCategory = document.getElementById('customCategory').value;
             closeUploadModal(); // Upload process shuru hote hi modal band kar do
 
             // UI update: Uploading dikhayein
@@ -272,6 +304,7 @@
             formData.append('document', file);
             formData.append('nickname', nickname); // Upar wale URL se nikala gaya profile ka naam
             formData.append('docName', docName);
+            formData.append('category', docCategory);
 
             try {
                 const res = await fetch('/api/upload', { method: 'POST', body: formData });

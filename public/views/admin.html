@@ -97,6 +97,14 @@
 
         <div id="profiles" class="profiles-grid"></div>
 
+        <!-- RECYCLE BIN SECTION 🗑️ -->
+        <div id="bin-section" style="margin-top: 25px; width: 100%;">
+            <h3 style="font-size: 1.1rem; text-align: left; margin-bottom: 10px; color: #fbbf24;">
+                <i class="fa-solid fa-trash-can-arrow-up"></i> Recycle Bin
+            </h3>
+            <div id="bin-list" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;"></div>
+        </div>
+
         <!-- INTRUDER ALERT SECTION 🚨 -->
         <div id="intruder-section" style="margin-top: 25px; width: 100%;">
             <h3 style="font-size: 1.1rem; text-align: left; margin-bottom: 10px; color: #ff4b2b;">
@@ -122,7 +130,6 @@
             <input type="text" id="new-member-name" placeholder="Real Name" class="pin-input" required>
             <div class="cam-wrapper">
                 <video id="add-cam" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scale(1.2);"></video>
-                <div id="add-liveness-status" style="position:absolute; bottom:0; width:100%; text-align:center; background:rgba(0,0,0,0.7); color:#fff; font-size:0.8rem; padding:8px 0; z-index:10; font-weight:bold;"></div>
                 <div class="scanner-line"></div>
             </div>
             <button onclick="addMemberWithFace()" class="btn-glow" id="add-capture-btn"><i class="fa-solid fa-camera"></i> Capture Face & Save</button>
@@ -135,7 +142,6 @@
         <h3 class="neon-text" id="face-setup-title">Setup Face ID</h3>
         <div class="cam-wrapper">
             <video id="setup-cam" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scale(1.2);"></video>
-            <div id="setup-liveness-status" style="position:absolute; bottom:0; width:100%; text-align:center; background:rgba(0,0,0,0.7); color:#fff; font-size:0.8rem; padding:8px 0; z-index:10; font-weight:bold;"></div>
             <div class="scanner-line"></div>
         </div>
         <button onclick="captureFaceData()" class="btn-glow" id="capture-btn" style="width: 250px;"><i class="fa-solid fa-camera"></i> Capture Face Data</button>
@@ -158,6 +164,7 @@
 
         window.onload = () => {
             loadIntruders();
+            loadBin();
             loadActivityLogs();
             loadProfiles();
             loadAIModels();
@@ -216,6 +223,24 @@
             }
         }
 
+        async function loadBin() {
+            const res = await fetch('/api/bin');
+            const docs = await res.json();
+            if (docs.length > 0) {
+                document.getElementById('bin-list').innerHTML = docs.map(d => `
+                    <div style="background: rgba(251,191,36,0.1); padding: 10px; border-radius: 10px; border: 1px dashed #fbbf24; text-align: center; min-width: 120px;">
+                        <i class="fa-solid fa-file-lines fa-lg" style="color: #fbbf24;"></i><br>
+                        <b style="font-size:0.8rem;">${d.docName}</b><br>
+                        <span style="font-size:0.6rem; color:gray;">@${d.ownerNickname}</span><br>
+                        <button onclick="restoreDoc('${d._id}')" style="background:#10b981; color:white; border:none; padding:3px 8px; border-radius:5px; margin-top:5px; cursor:pointer;" title="Restore"><i class="fa-solid fa-rotate-left"></i></button>
+                        <button onclick="permanentDelete('${d._id}')" style="background:#ef4444; color:white; border:none; padding:3px 8px; border-radius:5px; margin-top:5px; cursor:pointer;" title="Permanent Delete"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('bin-list').innerHTML = `<p style="color:gray; font-size:0.8rem;">Recycle bin is empty.</p>`;
+            }
+        }
+
         async function loadActivityLogs() {
             const res = await fetch('/api/logs');
             const logs = await res.json();
@@ -243,44 +268,26 @@
             if(addVideo.srcObject) addVideo.srcObject.getTracks().forEach(track => track.stop());
         }
 
-        // SIMULATED LIVENESS VERIFICATION LOGIC (META STYLE)
-        async function performLivenessCheck(videoElement, statusElement) {
-            statusElement.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> " + (isHindi ? "सीधे देखें..." : "Look Straight...");
-            await new Promise(r => setTimeout(r, 1200));
-            
-            let detection = await faceapi.detectSingleFace(videoElement).withFaceLandmarks().withFaceDescriptor();
-            if (!detection) return null;
-            
-            statusElement.innerHTML = "<i class='fa-solid fa-arrow-left'></i> " + (isHindi ? "चेहरा हल्का बाएं घुमाएं..." : "Turn head slightly LEFT...");
-            await new Promise(r => setTimeout(r, 1500));
-            
-            statusElement.innerHTML = "<i class='fa-solid fa-arrow-right'></i> " + (isHindi ? "चेहरा हल्का दाएं घुमाएं..." : "Turn head slightly RIGHT...");
-            await new Promise(r => setTimeout(r, 1500));
-            
-            statusElement.innerHTML = "<i class='fa-solid fa-check'></i> " + (isHindi ? "वेरिफिकेशन पूरा हुआ!" : "Verification Complete!");
-            return Array.from(detection.descriptor);
-        }
-
         async function addMemberWithFace() {
             const name = document.getElementById('new-member-name').value.trim();
             if(!name) return alert("Please enter a name!");
             
             const btn = document.getElementById('add-capture-btn');
-            const statusEl = document.getElementById('add-liveness-status');
             const oldHtml = btn.innerHTML;
-            btn.innerHTML = "<i class='fa-solid fa-shield'></i> " + (isHindi ? "वेरिफिकेशन जारी..." : "Verifying Liveness...");
+            btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> AI Processing...";
             btn.disabled = true;
 
-            const descriptor = await performLivenessCheck(addVideo, statusEl);
+            const detection = await faceapi.detectSingleFace(addVideo).withFaceLandmarks().withFaceDescriptor();
 
-            if (descriptor) {
+            if (detection) {
+                const descriptor = Array.from(detection.descriptor);
                 const res = await fetch('/add-member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, descriptor }) });
                 const data = await res.json();
                 if (data.success) { window.location.reload(); }
                 else { alert(data.message); } // Exists already alert
             } else { alert("No face detected! Make sure you are in a bright room."); }
 
-            btn.innerHTML = oldHtml; btn.disabled = false; statusEl.innerHTML = "";
+            btn.innerHTML = oldHtml; btn.disabled = false;
         }
 
         // Face Setup Logic
@@ -303,20 +310,20 @@
         }
         async function captureFaceData() {
             const btn = document.getElementById('capture-btn');
-            const statusEl = document.getElementById('setup-liveness-status');
             const oldHtml = btn.innerHTML;
-            btn.innerHTML = "<i class='fa-solid fa-shield'></i> " + (isHindi ? "वेरिफिकेशन जारी..." : "Verifying Liveness...");
+            btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> AI Processing...";
             btn.disabled = true;
 
-            const descriptor = await performLivenessCheck(setupVideo, statusEl);
+            const detection = await faceapi.detectSingleFace(setupVideo).withFaceLandmarks().withFaceDescriptor();
 
-            if (descriptor) {
+            if (detection) {
+                const descriptor = Array.from(detection.descriptor);
                 const res = await fetch('/api/register-face', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: currentSetupUser, descriptor }) });
                 const data = await res.json();
                 if(data.success) { alert("Face ID Registered for " + currentSetupUser); closeFaceModal(); }
                 else { alert(data.message); }
             } else { alert("No face detected! Make sure you are in a bright room."); }
-            btn.innerHTML = oldHtml; btn.disabled = false; statusEl.innerHTML = "";
+            btn.innerHTML = oldHtml; btn.disabled = false;
         }
 
         async function deleteProfile(nickname, event) {
@@ -326,6 +333,17 @@
             const data = await res.json();
             if(data.success) window.location.reload();
             else alert("Error: " + data.message);
+        }
+
+        async function restoreDoc(id) {
+            await fetch('/api/bin/restore/' + id, { method: 'PUT' });
+            loadBin(); loadActivityLogs();
+        }
+        
+        async function permanentDelete(id) {
+            if(!confirm("Are you sure? This will delete the file permanently from Cloudinary!")) return;
+            await fetch('/api/bin/permanent/' + id, { method: 'DELETE' });
+            loadBin(); loadActivityLogs();
         }
 
         async function downloadBackup() {

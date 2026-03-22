@@ -65,7 +65,9 @@ const Member = mongoose.model('Member', memberSchema);
 const docSchema = new mongoose.Schema({
     ownerNickname: String,
     docName: String,
+    category: { type: String, default: 'Other' }, // Smart Categories
     fileUrl: String,
+    isDeleted: { type: Boolean, default: false }, // Recycle Bin Feature
     uploadDate: { type: Date, default: Date.now }
 });
 const Document = mongoose.model('Document', docSchema);
@@ -127,10 +129,15 @@ app.get('/profile', (req, res) => {
 // D. API: Login Process (.env ke PIN se match karega)
 app.post('/api/login', (req, res) => {
     const correctPin = String(process.env.ADMIN_PIN).split('#')[0].trim();
-    if (String(req.body.pin).trim() === correctPin) {
+    const inputPin = String(req.body.pin).trim();
+    if (inputPin === correctPin) {
         res.cookie('auth', 'verified', { httpOnly: true }); 
         res.cookie('role', 'admin', { httpOnly: true }); // 🔥 Yahan admin ki chabhi deni zaroori hai
-        res.json({ success: true });
+        res.json({ success: true, stealth: false });
+    } else if (inputPin === '000000') {
+        res.cookie('auth', 'verified', { httpOnly: true }); 
+        res.cookie('role', 'stealth', { httpOnly: true }); // 🕵️‍♂️ STEALTH MODE
+        res.json({ success: true, stealth: true });
     } else {
         res.json({ success: false });
     }
@@ -139,10 +146,11 @@ app.post('/api/login', (req, res) => {
 // E. API: Saare Members fetch karna (With Doc Count)
 app.get('/api/members', async (req, res) => {
     try {
+        if (req.cookies.role === 'stealth') return res.json([]); // Stealth mode mein sab gayab!
         const currentUser = req.cookies.user || 'admin';
         const members = await Member.find({});
         const membersWithCounts = await Promise.all(members.map(async (m) => {
-            const count = await Document.countDocuments({ ownerNickname: m.nickname });
+            const count = await Document.countDocuments({ ownerNickname: m.nickname, isDeleted: false });
             const obj = m.toObject();
             let dName = obj.name;
             if (obj.customNames && obj.customNames[currentUser]) dName = obj.customNames[currentUser];
@@ -267,11 +275,12 @@ app.get('/api/check-role', (req, res) => {
 app.post('/api/upload', upload.single('document'), async (req, res) => {
     if (req.cookies.auth !== 'verified') return res.status(403).json({ success: false, message: "Unauthorized!" });
     try {
-        const { nickname, docName } = req.body;
+        const { nickname, docName, category } = req.body;
         
         const newDoc = new Document({
             ownerNickname: nickname,
             docName: docName,
+            category: category || 'Other',
             fileUrl: req.file.path // Cloudinary ka link
         });
 
@@ -287,7 +296,7 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
 // H. API: Kisi member ke docs fetch karna
 app.get('/api/docs/:nickname', async (req, res) => {
     if (req.cookies.auth !== 'verified') return res.status(403).json({ error: "Unauthorized" });
-    const docs = await Document.find({ ownerNickname: req.params.nickname });
+    const docs = await Document.find({ ownerNickname: req.params.nickname, isDeleted: false });
     res.json(docs);
 });
 
@@ -360,7 +369,7 @@ app.get('/api/recent-docs', async (req, res) => {
     if (req.cookies.auth !== 'verified') return res.status(403).json({ error: "Unauthorized" });
     try {
         // Sabse naye 5 documents dhoondho (uploadDate ke hisaab se descending order)
-        const recentDocs = await Document.find({}).sort({ uploadDate: -1 }).limit(5);
+        const recentDocs = await Document.find({ isDeleted: false }).sort({ uploadDate: -1 }).limit(5);
         res.json(recentDocs);
     } catch (err) {
         res.status(500).json({ error: "Could not fetch recent documents." });
@@ -371,7 +380,7 @@ app.get('/api/recent-docs', async (req, res) => {
 app.get('/api/all-docs', async (req, res) => {
     if (req.cookies.auth !== 'verified') return res.status(403).json({ error: "Unauthorized" });
     try {
-        const docs = await Document.find({});
+        const docs = await Document.find({ isDeleted: false });
         res.json(docs);
     } catch (err) {
         res.status(500).json({ error: "Could not fetch all documents." });
@@ -390,6 +399,31 @@ app.get('/api/logs', async (req, res) => {
     if (req.cookies.auth !== 'verified') return res.status(403).json([]);
     const logs = await Log.find({}).sort({ timestamp: -1 }).limit(8);
     res.json(logs);
+});
+
+// O. API: Recycle Bin (Admin Only)
+app.get('/api/bin', async (req, res) => {
+    if (req.cookies.role !== 'admin') return res.status(403).json([]);
+    const docs = await Document.find({ isDeleted: true }).sort({ uploadDate: -1 });
+    res.json(docs);
+});
+app.put('/api/bin/restore/:id', async (req, res) => {
+    if (req.cookies.role !== 'admin') return res.status(403).json({ success: false });
+    await Document.findByIdAndUpdate(req.params.id, { isDeleted: false });
+    await addLog(`A document was restored from Recycle Bin`);
+    res.json({ success: true });
+});
+app.delete('/api/bin/permanent/:id', async (req, res) => {
+    if (req.cookies.role !== 'admin') return res.status(403).json({ success: false });
+    const doc = await Document.findById(req.params.id);
+    if (doc) {
+        const urlParts = doc.fileUrl.split('/');
+        const publicId = urlParts.slice(-2).join('/').replace(/\.[^/.]+$/, "");
+        try { await cloudinary.uploader.destroy(publicId); } catch(e) {}
+        await Document.findByIdAndDelete(req.params.id);
+        await addLog(`A document was permanently deleted`);
+    }
+    res.json({ success: true });
 });
 
 // --- 6. SERVER START ---

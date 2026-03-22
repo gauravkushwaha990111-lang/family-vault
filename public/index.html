@@ -176,7 +176,8 @@
                 if(data.success) {
                     localStorage.setItem('vaultUser', 'एडमिन'); // Admin login ke liye
                     msg.innerHTML = isHindi ? "<i class='fa-solid fa-circle-check'></i> सत्यापित!" : "<i class='fa-solid fa-circle-check'></i> Verified!";
-                    setTimeout(() => window.location.href = "/admin", 1000);
+                    // Agar Fake PIN (Stealth) daala hai toh dashboard pe bhejo, asli pe Admin pe.
+                    setTimeout(() => window.location.href = data.stealth ? "/dashboard" : "/admin", 1000);
                 } else {
                     msg.style.color = "#ff4b2b";
                     msg.innerHTML = isHindi ? "<i class='fa-solid fa-circle-xmark'></i> गलत पिन!" : "<i class='fa-solid fa-circle-xmark'></i> Wrong PIN!";
