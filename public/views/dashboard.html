@@ -80,6 +80,9 @@
     <!-- Panic Lock Button -->
     <button onclick="lockVault()" style="position: fixed; bottom: 20px; right: 20px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 55px; height: 55px; font-size: 22px; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); cursor: pointer; z-index: 1000; transition: 0.3s;" title="Panic Lock"><i class="fa-solid fa-power-off"></i></button>
 
+    <!-- Hidden Input for Avatar Upload -->
+    <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;" onchange="submitAvatarUpload(this)">
+
     <div class="glass-card" style="max-width: 600px; width: 100%; margin-top: 30px;">
         <h2 class="neon-text" data-en="<i class='fa-solid fa-shield-halved'></i> Family Vault" data-hi="<i class='fa-solid fa-shield-halved'></i> परिवार तिजोरी"><i class="fa-solid fa-shield-halved"></i> Family Vault</h2>
         <p id="jarvis-status" style="color: var(--neon-blue);" data-en="Hello! I am ready." data-hi="नमस्ते! मैं तैयार हूँ।">Hello! I am ready.</p>
@@ -181,8 +184,8 @@
             if(localStorage.getItem('layoutPref') === 'list') document.getElementById('profiles').classList.add('profiles-list');
 
             document.body.addEventListener('click', () => {
-                const userName = localStorage.getItem('vaultUser') || 'सदस्य'; // Naam nikalo
-                speak(`${userName}, आपका स्वागत है। बताइए, क्या काम करना है?`);
+                const userName = localStorage.getItem('vaultUser') || (isHindi ? 'Member' : 'Member'); // Naam nikalo
+                speak(isHindi ? `${userName}, आपका स्वागत है। बताइए, क्या काम करना है?` : `Welcome ${userName}. What would you like to do?`);
             }, { once: true });
         };
 
@@ -227,7 +230,10 @@
                     <!-- Doc Count & Edit Control -->
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 10px;">
                         <span style="font-size: 0.8rem; background: ${color}22; color: ${color}; padding: 3px 10px; border-radius: 12px; border: 1px solid ${color}55;">${m.docCount || 0} Docs</span>
-                        <button onclick="openEditSetup('${m.nickname}', '${m.name}', event)" title="Edit Profile" style="background:rgba(0,0,0,0.5); border:1px solid #ffaa00; color:#ffaa00; padding:2px 8px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <div>
+                            <button onclick="triggerAvatarUpload('${m.nickname}', event)" title="Upload Photo" style="background:rgba(0,0,0,0.5); border:1px solid #10b981; color:#10b981; padding:2px 8px; border-radius:8px; cursor:pointer; margin-right: 5px;"><i class="fa-solid fa-image"></i></button>
+                            <button onclick="openEditSetup('${m.nickname}', '${m.name}', event)" title="Edit Profile" style="background:rgba(0,0,0,0.5); border:1px solid #ffaa00; color:#ffaa00; padding:2px 8px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button>
+                        </div>
                     </div>
                 </div>
             `}).join('');
@@ -239,6 +245,29 @@
             document.getElementById('edit-old-nickname').value = nickname;
             document.getElementById('edit-nickname').value = nickname;
             document.getElementById('editModal').style.display = 'flex';
+        }
+
+        // Avatar Upload Logic (Gallery se)
+        let targetAvatarUser = "";
+        function triggerAvatarUpload(nickname, event) {
+            event.stopPropagation();
+            targetAvatarUser = nickname;
+            document.getElementById('avatar-upload-input').click(); // File picker kholo
+        }
+        async function submitAvatarUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            const formData = new FormData();
+            formData.append('avatar', input.files[0]);
+            formData.append('nickname', targetAvatarUser);
+            
+            alert(isHindi ? "प्रोफ़ाइल फोटो अपलोड हो रही है, कृपया प्रतीक्षा करें..." : "Uploading profile photo, please wait...");
+            try {
+                const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) window.location.reload();
+                else alert(isHindi ? "त्रुटि: " + data.message : "Error: " + data.message);
+            } catch (err) { alert(isHindi ? "सर्वर त्रुटि!" : "Server Error!"); }
+            input.value = ""; 
         }
 
         async function submitEditProfile() {
@@ -276,7 +305,7 @@
 
         // Har member ka apna alag folder kholne ka logic
         function openProfile(nickname) {
-            speak(nickname + " ka folder khol rahi hoon.");
+            speak(isHindi ? nickname + " का folder खोल रही हूँ।" : "Opening folder for " + nickname + ".");
             setTimeout(() => {
                 window.location.href = '/profile?user=' + nickname;
             }, 1500); // 1.5 second ka delay taaki Jarvis ki aawaz puri ho jaye
@@ -284,7 +313,7 @@
 
         // Vault Lock (Logout) Logic
         async function lockVault() {
-            speak(isHindi ? "तिजोरी बंद कर रही हूँ।" : "Locking the vault.");
+            speak(isHindi ? "Vault lock कर रही हूँ।" : "Locking the vault.");
             await fetch('/api/logout');
             setTimeout(() => {
                 window.location.href = '/'; // Login page par fek do
@@ -317,12 +346,12 @@
                 
                 // --- 1. General Voice Commands (Bina Hath Lagaye Dashboard Control) ---
                 if (cmd.includes('add') || cmd.includes('naya') || cmd.includes('jodo')) {
-                    speak(isHindi ? "नया सदस्य जोड़ने का फॉर्म खोल रही हूँ।" : "Opening the form to add a new member.");
+                    speak(isHindi ? "नया member add करने का form खोल रही हूँ।" : "Opening the form to add a new member.");
                     document.getElementById('addModal').style.display = 'flex';
                     return;
                 }
                 if (cmd.includes('close') || cmd.includes('band karo') || cmd.includes('cancel')) {
-                    speak(isHindi ? "ठीक है, बंद कर रही हूँ।" : "Alright, closing it.");
+                    speak(isHindi ? "ठीक है, close कर रही हूँ।" : "Alright, closing it.");
                     document.getElementById('addModal').style.display = 'none';
                     return;
                 }
@@ -331,7 +360,7 @@
                     return;
                 }
                 if (cmd.includes('backup') || cmd.includes('zip') || cmd.includes('download all')) {
-                    speak(isHindi ? "वॉल्ट का बैकअप तैयार कर रही हूँ।" : "Preparing vault backup.");
+                    speak(isHindi ? "Vault का backup तैयार कर रही हूँ।" : "Preparing vault backup.");
                     downloadBackup();
                     return;
                 }
@@ -347,16 +376,36 @@
                 }
 
                 if(matchedMember) {
+                    // Filter grammatical words to extract document name (Jaise "aadhar upload karo" me se "aadhar" nikalna)
+                    let cmdText = cmd.replace(matchedMember.name.toLowerCase(), '').replace(matchedMember.displayName ? matchedMember.displayName.toLowerCase() : '', '').replace(/\b(ka|ke|ki|ko|mera|meri|documents|document|karna|hai|please)\b/g, '').replace(/\s+/g, ' ').trim();
+
                     // NAYA: Agar Nickname change karne ko bola gaya hai
                     if (cmd.includes("naam badal") || cmd.includes("naam change") || cmd.includes("nickname")) {
-                        speak(isHindi ? `ठीक है, ${matchedMember.displayName} का नया नाम टाइप करें।` : `Alright, type the new name for ${matchedMember.displayName}.`);
+                        speak(isHindi ? `ठीक है, ${matchedMember.displayName} का नया name type करें।` : `Alright, type the new name for ${matchedMember.displayName}.`);
                         openEditSetup(matchedMember.nickname, matchedMember.name, null);
+                        return;
+                    }
+
+                    // Auto-Upload Trigger (Pehle document ka naam nikalo, fir Profile page pe bhejo)
+                    if (cmd.includes("upload") || cmd.includes("daalo") || cmd.includes("save") || cmd.includes("add")) {
+                        let docName = cmdText.replace(/\b(upload|daalo|save|add|karo|karein)\b/g, '').trim();
+                        speak(isHindi ? `ठीक है, ${docName || 'दस्तावेज़'} अपलोड करने के लिए तैयार है।` : `Alright, ready to upload ${docName || 'document'}.`);
+                        setTimeout(() => { window.location.href = `/profile?user=${matchedMember.nickname}&name=${encodeURIComponent(matchedMember.displayName)}&action=upload&docName=${encodeURIComponent(docName)}`; }, 1500);
+                        return;
+                    }
+
+                    // Auto-Open / Preview Trigger
+                    if (cmd.includes("kholo") || cmd.includes("dikhao") || cmd.includes("open") || cmd.includes("check")) {
+                        let docName = cmdText.replace(/\b(kholo|dikhao|open|check|karo|karein)\b/g, '').trim();
+                        speak(isHindi ? `जी, ${matchedMember.displayName} का ${docName || 'दस्तावेज़'} खोल रही हूँ।` : `Opening ${docName || 'document'} for ${matchedMember.displayName}.`);
+                        setTimeout(() => { window.location.href = `/profile?user=${matchedMember.nickname}&name=${encodeURIComponent(matchedMember.displayName)}&action=open&docName=${encodeURIComponent(docName)}`; }, 1500);
                         return;
                     }
 
                     // Agar command mein "download" bola gaya hai
                     if (cmd.includes("download") || cmd.includes("daunlod")) {
-                        speak("Ji, " + matchedMember.displayName + " ka document dhoondh rahi hoon...");
+                        speak(isHindi ? "जी, " + matchedMember.displayName + " का document ढूंढ रही हूँ..." : "Alright, looking for " + matchedMember.displayName + "'s document...");
+                        let docName = cmdText.replace(/\b(download|daunlod|karo|karein)\b/g, '').trim();
                         
                         // Backend se us member ke documents mangwao
                         fetch('/api/docs/' + matchedMember.nickname)
@@ -364,16 +413,16 @@
                             .then(docs => {
                                 let foundDoc = null;
                                 for(let d of docs) {
-                                    // Document ke naam ka har word check karein (Jaise: "Aadhar" in "Aadhar Card")
-                                    const docWords = d.docName.toLowerCase().split(' ');
-                                    if(docWords.some(word => cmd.includes(word))) {
-                                        foundDoc = d;
-                                        break;
+                                    if(docName && d.docName.toLowerCase().includes(docName)) {
+                                        foundDoc = d; break;
+                                    } else {
+                                        const docWords = d.docName.toLowerCase().split(' ');
+                                        if(docWords.some(word => cmd.includes(word))) { foundDoc = d; break; }
                                     }
                                 }
                                 
                                 if(foundDoc) {
-                                    speak(foundDoc.docName + " download kar rahi hoon.");
+                                    speak(isHindi ? foundDoc.docName + " download कर रही हूँ।" : "Downloading " + foundDoc.docName + ".");
                                     const downloadUrl = foundDoc.fileUrl.replace('/upload/', '/upload/fl_attachment/');
                                     const a = document.createElement('a');
                                     a.href = downloadUrl;
@@ -382,18 +431,18 @@
                                     a.click();
                                     document.body.removeChild(a);
                                 } else {
-                                    speak("Maaf kijiye, mujhe " + matchedMember.displayName + " ki profile mein ye document nahi mila.");
+                                    speak(isHindi ? "माफ़ कीजिये, मुझे " + matchedMember.displayName + " की profile में यह document नहीं मिला।" : "Sorry, I couldn't find this document in " + matchedMember.displayName + "'s profile.");
                                 }
                             });
                     } else {
                         // Agar sirf naam bola, toh uski profile kholo
-                        speak("Ji, " + matchedMember.displayName + " ki profile khol rahi hoon.");
+                        speak(isHindi ? "जी, " + matchedMember.displayName + " की profile खोल रही हूँ।" : "Alright, opening " + matchedMember.displayName + "'s profile.");
                         setTimeout(() => {
                             window.location.href = `/profile?user=${matchedMember.nickname}&name=${encodeURIComponent(matchedMember.displayName)}`;
                         }, 1500);
                     }
                 } else {
-                    speak("Maaf kijiye, mujhe ye profile nahi mili. Phir se koshish karein.");
+                    speak(isHindi ? "माफ़ कीजिये, मुझे यह profile नहीं मिली। फिर से कोशिश करें।" : "Sorry, I couldn't find this profile. Please try again.");
                 }
             };
         }

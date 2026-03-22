@@ -248,7 +248,7 @@
                 localStorage.setItem('vaultUser', data.name); // Ab Asli naam save hoga
                 msg.innerHTML = "<i class='fa-solid fa-circle-check'></i> " + (isHindi ? "पहचान लिया " : "Welcome ") + data.name + "!";
                 msg.style.color = "#00f2fe";
-                speak((isHindi ? "पहचान लिया " : "Welcome ") + data.name + ". तिजोरी खुल रही है।");
+                speak(isHindi ? "पहचान लिया " + data.name + "। Vault खुल रहा है।" : "Welcome " + data.name + ". Opening vault.");
                 setTimeout(() => window.location.href = "/dashboard", 2000); // Awaz ke baad open hoga
             } else {
                 msg.innerHTML = "<i class='fa-solid fa-triangle-exclamation fa-fade'></i> " + (isHindi ? "अनजान चेहरा! प्रवेश वर्जित।" : "UNKNOWN FACE! Access Denied.");

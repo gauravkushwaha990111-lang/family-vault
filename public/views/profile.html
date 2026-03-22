@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
     <!-- QR Code Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- PWA Setup -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -138,7 +138,7 @@
         </div>
 
         <div id="docs-container" class="docs-grid">
-            <p data-en="Scanning Vault..." data-hi="तिजोरी स्कैन हो रही है...">Scanning Vault...</p>
+            <p data-en="<i class='fa-solid fa-spinner fa-spin'></i> Scanning Vault..." data-hi="<i class='fa-solid fa-spinner fa-spin'></i> तिजोरी स्कैन हो रही है..."><i class="fa-solid fa-spinner fa-spin"></i> Scanning Vault...</p>
         </div>
         
         <!-- Hidden Camera Input -->
@@ -206,24 +206,73 @@
         }
         applyLang();
 
+        // AI Bolne ki settings
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = localStorage.getItem('lang') === 'hi' ? 'hi-IN' : 'en-IN';
+            window.speechSynthesis.speak(utterance);
+        }
+
         // URL se member ka nickname nikalein (e.g. ?user=Golu)
         const urlParams = new URLSearchParams(window.location.search);
         const nickname = urlParams.get('user');
         const displayName = urlParams.get('name') || nickname; // Asli naam nikalo
+        const actionParam = urlParams.get('action'); // Auto-action trigger
+        const docNameParam = urlParams.get('docName'); 
 
-        if (nickname) {
+        if (!nickname) {
+            window.location.href = '/dashboard'; // URL me user nahi hone par wapas bhejo (Loading screen fix)
+        } else {
             document.getElementById('profile-name').innerText = displayName + (isHindi ? " की तिजोरी" : "'s Vault");
             document.getElementById('profile-nick').innerText = "All secure documents.";
             
             let globalDocs = []; // Search / Filter karne ke liye global list
+            let docsRendered = false;
+
+            // ⚡ SUPERFAST CACHE: Pehle phone ki memory se documents load karo (0-second load)
+            const cachedDocs = localStorage.getItem('docs_' + nickname);
+            if (cachedDocs) {
+                globalDocs = JSON.parse(cachedDocs);
+                renderDocs(globalDocs);
+                handleAutoActions();
+                docsRendered = true;
+            }
 
             // Backend API se is member ke documents dhoondhein
             fetch('/api/docs/' + nickname)
                 .then(res => res.json())
                 .then(docs => {
+                    localStorage.setItem('docs_' + nickname, JSON.stringify(docs)); // Naya data memory me save karo
                     globalDocs = docs;
                     renderDocs(globalDocs);
+                    if (!docsRendered) handleAutoActions();
                 });
+        }
+
+        // Naya Auto-Action Logic (Jarvis Command Execution)
+        function handleAutoActions() {
+            if (!actionParam) return;
+            setTimeout(() => {
+                if (actionParam === 'upload') {
+                    openUploadModal();
+                    if (docNameParam) {
+                        // Padhne me accha lage isliye First letters ko Capital banayega
+                        document.getElementById('customDocName').value = docNameParam.replace(/\b\w/g, c => c.toUpperCase());
+                    }
+                    speak(isHindi ? "अपना दस्तावेज़ चुनें और अपलोड करें।" : "Please select and upload your document.");
+                } else if (actionParam === 'open') {
+                    if (!globalDocs || globalDocs.length === 0) return;
+                    let found = null;
+                    if (docNameParam) found = globalDocs.find(d => d.docName.toLowerCase().includes(docNameParam.toLowerCase()));
+                    
+                    if (found) { openLightbox(found.fileUrl); } 
+                    else { speak(isHindi ? "माफ़ कीजिये, यह दस्तावेज़ नहीं मिला।" : "Sorry, I couldn't find this document."); }
+                }
+                
+                // Ek baar run hone ke baad URL saaf kar do taaki page refresh par wapas trigger na ho
+                window.history.replaceState({}, document.title, window.location.pathname + "?user=" + nickname + "&name=" + encodeURIComponent(displayName));
+            }, 500); // Loading ke baad 0.5s ka delay taaki animation dikh sake
         }
 
         let activeCategory = 'All';

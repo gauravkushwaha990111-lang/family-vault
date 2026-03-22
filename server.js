@@ -44,6 +44,19 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage: storage });
 
+// --- 2.5 STORAGE SETUP (Cloudinary Avatars) ---
+const avatarStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'Kushwaha_Vault_Avatars',
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+        transformation: [
+            { width: 500, height: 500, crop: "fill", gravity: "face" } // Perfect square face zoom
+        ]
+    },
+});
+const uploadAvatar = multer({ storage: avatarStorage });
+
 // --- 3. DATABASE CONNECTION ---
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("Family Vault: Database Connected!"))
@@ -64,13 +77,13 @@ const Member = mongoose.model('Member', memberSchema);
 
 // Document Schema (Files)
 const docSchema = new mongoose.Schema({
-    ownerNickname: String,
+    ownerNickname: { type: String, index: true }, // ⚡ Index for blazing fast search
     docName: String,
     category: { type: String, default: 'Other' }, // Smart Categories
     docNumber: { type: String, default: '' }, // One-Click Copy Number
     expiryDate: { type: Date, default: null }, // Expiry Alert Date
     fileUrl: String,
-    isDeleted: { type: Boolean, default: false }, // Recycle Bin Feature
+    isDeleted: { type: Boolean, default: false, index: true }, // ⚡ Index for fast filtering
     uploadDate: { type: Date, default: Date.now }
 });
 const Document = mongoose.model('Document', docSchema);
@@ -430,6 +443,28 @@ app.delete('/api/bin/permanent/:id', async (req, res) => {
         await addLog(`A document was permanently deleted`);
     }
     res.json({ success: true });
+});
+
+// P. API: Upload Profile Picture (Avatar) Gallery se
+app.post('/api/upload-avatar', uploadAvatar.single('avatar'), async (req, res) => {
+    if (req.cookies.auth !== 'verified') return res.status(403).json({ success: false, message: "Unauthorized!" });
+    try {
+        const nickname = req.body.nickname;
+        
+        // Purani photo cloudinary se delete karein (storage bachane ke liye)
+        const member = await Member.findOne({ nickname: nickname });
+        if (member && member.profilePic && member.profilePic.includes('Kushwaha_Vault_Avatars')) {
+            try {
+                const publicId = member.profilePic.split('/').slice(-2).join('/').replace(/\.[^/.]+$/, "");
+                await cloudinary.uploader.destroy(publicId);
+            } catch(e) {}
+        }
+
+        await Member.findOneAndUpdate({ nickname: nickname }, { profilePic: req.file.path });
+        res.json({ success: true, message: "Profile picture updated!" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Upload failed." });
+    }
 });
 
 // --- 6. SERVER START ---

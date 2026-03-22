@@ -72,6 +72,9 @@
     <!-- Panic Lock Button -->
     <button onclick="lockVault()" style="position: fixed; bottom: 20px; right: 20px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 55px; height: 55px; font-size: 22px; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); cursor: pointer; z-index: 1000; transition: 0.3s;" title="Panic Lock"><i class="fa-solid fa-power-off"></i></button>
 
+    <!-- Hidden Input for Avatar Upload -->
+    <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;" onchange="submitAvatarUpload(this)">
+
     <div class="glass-card" style="max-width: 600px; width: 100%; margin-top: 30px;">
         <h2 class="neon-text" data-en="<i class='fa-solid fa-user-shield'></i> Admin Vault" data-hi="<i class='fa-solid fa-user-shield'></i> एडमिन तिजोरी"><i class="fa-solid fa-user-shield"></i> Admin Vault</h2>
         <p id="jarvis-status" style="color: var(--neon-blue);" data-en="Admin Mode Active." data-hi="एडमिन मोड चालू।">Admin Mode Active.</p>
@@ -215,10 +218,36 @@
                     <p>${m.displayName}</p>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 10px;">
                         <span style="font-size: 0.8rem; background: ${color}22; color: ${color}; padding: 3px 10px; border-radius: 12px; border: 1px solid ${color}55;">${m.docCount || 0} Docs</span>
-                        <button onclick="openFaceSetup('${m.nickname}', event)" title="Setup Face ID" style="background:rgba(0,0,0,0.5); border:1px solid #00f2fe; color:#00f2fe; padding:2px 8px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-id-badge"></i></button>
+                        <div>
+                            <button onclick="triggerAvatarUpload('${m.nickname}', event)" title="Upload Photo" style="background:rgba(0,0,0,0.5); border:1px solid #10b981; color:#10b981; padding:2px 8px; border-radius:8px; cursor:pointer; margin-right: 5px;"><i class="fa-solid fa-image"></i></button>
+                            <button onclick="openFaceSetup('${m.nickname}', event)" title="Setup Face ID" style="background:rgba(0,0,0,0.5); border:1px solid #00f2fe; color:#00f2fe; padding:2px 8px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-id-badge"></i></button>
+                        </div>
                     </div>
                 </div>
             `}).join('');
+        }
+
+        // Avatar Upload Logic (Gallery se)
+        let targetAvatarUser = "";
+        function triggerAvatarUpload(nickname, event) {
+            event.stopPropagation();
+            targetAvatarUser = nickname;
+            document.getElementById('avatar-upload-input').click();
+        }
+        async function submitAvatarUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            const formData = new FormData();
+            formData.append('avatar', input.files[0]);
+            formData.append('nickname', targetAvatarUser);
+            
+            alert(isHindi ? "प्रोफ़ाइल फोटो अपलोड हो रही है, कृपया प्रतीक्षा करें..." : "Uploading profile photo, please wait...");
+            try {
+                const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) window.location.reload();
+                else alert(isHindi ? "त्रुटि: " + data.message : "Error: " + data.message);
+            } catch (err) { alert(isHindi ? "सर्वर त्रुटि!" : "Server Error!"); }
+            input.value = ""; 
         }
 
         async function loadIntruders() {
