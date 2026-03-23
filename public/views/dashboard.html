@@ -202,6 +202,16 @@
                 const userName = localStorage.getItem('vaultUser') || (isHindi ? 'Member' : 'Member'); // Naam nikalo
                 speak(isHindi ? `${userName}, आपका स्वागत है। बताइए, क्या काम करना है?` : `Welcome ${userName}. What would you like to do?`);
             }, { once: true });
+
+            // 🔴 Offline / Online Detection
+            window.addEventListener('offline', () => {
+                document.getElementById('jarvis-status').innerHTML = isHindi ? "<i class='fa-solid fa-wifi'></i> इंटरनेट बंद है! (Offline Mode Active)" : "<i class='fa-solid fa-wifi'></i> No Internet! (Offline Mode Active)";
+                document.getElementById('jarvis-status').style.color = "#ff4b2b";
+            });
+            window.addEventListener('online', () => {
+                document.getElementById('jarvis-status').innerHTML = isHindi ? "<i class='fa-solid fa-wifi'></i> वापस ऑनलाइन!" : "<i class='fa-solid fa-wifi'></i> Back Online!";
+                document.getElementById('jarvis-status').style.color = "#00ff88";
+            });
         };
 
 

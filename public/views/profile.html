@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Poppins:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
     <!-- QR Code Library -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- jsPDF for merging multiple images into single PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- PWA Setup -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -142,7 +144,7 @@
         </div>
         
         <!-- Hidden Camera Input -->
-        <input type="file" id="camera-input" accept="image/*,application/pdf" capture="environment" style="display: none;" onchange="uploadPhoto(this)">
+        <input type="file" id="camera-input" accept="image/*,application/pdf" multiple style="display: none;" onchange="uploadPhoto(this)">
         <button id="upload-btn" onclick="openUploadModal()" class="btn-glow" style="margin-top: 20px; background: linear-gradient(45deg, #b224ef, #7579ff);" data-en="<i class='fa-solid fa-upload'></i> Upload New Document" data-hi="<i class='fa-solid fa-upload'></i> नया दस्तावेज़ अपलोड करें">
             <i class="fa-solid fa-upload"></i> Upload New Document
         </button>
@@ -181,7 +183,7 @@
                 <option value="Other" selected>Other</option>
             </select>
             
-            <button onclick="triggerCamera()" class="btn-glow" data-en="<i class='fa-solid fa-camera'></i> Select & Upload" data-hi="<i class='fa-solid fa-camera'></i> चुनें और अपलोड करें"><i class="fa-solid fa-camera"></i> Select & Upload</button>
+            <button onclick="triggerCamera()" class="btn-glow" data-en="<i class='fa-solid fa-images'></i> Select Pages & Upload" data-hi="<i class='fa-solid fa-images'></i> पेज चुनें और अपलोड करें"><i class="fa-solid fa-images"></i> Select Pages & Upload</button>
             <button onclick="closeUploadModal()" style="background:none; border:none; color:white; margin-top:15px; cursor:pointer; width: 100%;" data-en="Cancel" data-hi="रद्द करें">Cancel</button>
         </div>
     </div>
@@ -253,6 +255,16 @@
                     document.getElementById('docs-container').innerHTML = `<p style="color:red;">Error loading docs.</p>`;
                 });
         }
+
+        // 🔴 Offline / Online Detection
+        window.addEventListener('offline', () => {
+            document.getElementById('profile-nick').innerHTML = isHindi ? "<i class='fa-solid fa-wifi'></i> इंटरनेट बंद है! (Offline Mode Active)" : "<i class='fa-solid fa-wifi'></i> No Internet! (Offline Mode Active)";
+            document.getElementById('profile-nick').style.color = "#ff4b2b";
+        });
+        window.addEventListener('online', () => {
+            document.getElementById('profile-nick').innerHTML = isHindi ? "सभी सुरक्षित दस्तावेज़।" : "All secure documents.";
+            document.getElementById('profile-nick').style.color = "cyan";
+        });
 
         function handleAutoActions() {
             if (!actionParam) return;
@@ -403,8 +415,58 @@
             btn.innerHTML = isHindi ? "<i class='fa-solid fa-spinner fa-spin'></i> क्लाउड पर जा रहा है..." : "<i class='fa-solid fa-spinner fa-spin'></i> Uploading to Cloud...";
             btn.disabled = true;
 
+            let finalFile;
+            
+            // AGAR MULTIPLE IMAGES SELECT HUI HAIN TOH EKSATH MERGE KAREIN
+            if (input.files.length > 1) {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF();
+                    for (let i = 0; i < input.files.length; i++) {
+                        const file = input.files[i];
+                        if (file.type === "application/pdf") {
+                            alert(isHindi ? "कृपया केवल इमेजेज (Photos) चुनें जिन्हें मर्ज करना है।" : "Please select only images to merge.");
+                            btn.innerHTML = oldHtml;
+                            btn.disabled = false;
+                            return;
+                        }
+                        if (i > 0) pdf.addPage();
+                        
+                        const dataUrl = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = e => resolve(e.target.result);
+                            reader.readAsDataURL(file);
+                        });
+                        
+                        const img = new Image();
+                        img.src = dataUrl;
+                        await new Promise(r => img.onload = r);
+                        
+                        const pdfWidth = pdf.internal.pageSize.getWidth();
+                        const pdfHeight = pdf.internal.pageSize.getHeight();
+                        const ratio = Math.min(pdfWidth / img.width, pdfHeight / img.height);
+                        
+                        const finalWidth = img.width * ratio;
+                        const finalHeight = img.height * ratio;
+                        const x = (pdfWidth - finalWidth) / 2;
+                        const y = (pdfHeight - finalHeight) / 2;
+                        
+                        pdf.addImage(dataUrl, 'JPEG', x, y, finalWidth, finalHeight);
+                    }
+                    const pdfBlob = pdf.output('blob');
+                    finalFile = new File([pdfBlob], (docName || "Merged_Doc") + ".pdf", { type: "application/pdf" });
+                } catch(e) {
+                    alert(isHindi ? "पीडीएफ बनाने में त्रुटि!" : "Error merging images into PDF!");
+                    btn.innerHTML = oldHtml;
+                    btn.disabled = false;
+                    return;
+                }
+            } else {
+                finalFile = input.files[0];
+            }
+
             const formData = new FormData();
-            formData.append('document', file);
+            formData.append('document', finalFile);
             formData.append('nickname', nickname); 
             formData.append('docName', docName);
             formData.append('category', docCategory);

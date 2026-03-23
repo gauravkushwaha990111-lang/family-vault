@@ -147,12 +147,11 @@ app.post('/api/login', (req, res) => {
         res.cookie('auth', 'verified', { httpOnly: true }); 
         res.cookie('role', 'admin', { httpOnly: true }); // 🔥 Yahan admin ki chabhi deni zaroori hai
         res.json({ success: true, stealth: false });
-    } else if (inputPin === '000000') {
+    } else {
+        // 🔥 ANY WRONG PIN / LETTER: Fake Login (Stealth Mode) + Picture Capture
         res.cookie('auth', 'verified', { httpOnly: true }); 
         res.cookie('role', 'stealth', { httpOnly: true }); // 🕵️‍♂️ STEALTH MODE
         res.json({ success: true, stealth: true });
-    } else {
-        res.json({ success: false });
     }
 });
 

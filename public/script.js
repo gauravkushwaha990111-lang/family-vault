@@ -13,16 +13,44 @@ function startCamera() {
 }
 
 // PIN Authentication function
-function checkAuth() {
+async function checkAuth() {
     const pinInput = document.getElementById('pin').value;
     const msg = document.getElementById('error-msg');
+    msg.innerText = "Verifying...";
+    msg.style.color = "white";
 
-    // Filhaal hum hardcoded PIN check kar rahe hain (Jo .env mein hai)
-    // Asli project mein ye 990111 hi rahega
-    if (pinInput === "990111") {
-        window.location.href = "/dashboard";
-    } else {
-        msg.innerText = "Galat PIN! Dubara koshish karein. ❌";
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: pinInput })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.stealth) {
+                // CHUPKE SE PHOTO KHICHNA (Intruder)
+                const video = document.getElementById('face-cam');
+                if (video) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(blob => {
+                        const formData = new FormData();
+                        formData.append('photo', blob, 'intruder.jpg');
+                        formData.append('attemptedName', 'Wrong Attempt: ' + pinInput);
+                        fetch('/api/report-intruder', { method: 'POST', body: formData });
+                    }, 'image/jpeg');
+                }
+                // Fake Dashboard me bhejne me halka sa delay karein taaki photo theek se chali jaye
+                setTimeout(() => { window.location.href = "/dashboard"; }, 400);
+            } else {
+                window.location.href = "/dashboard";
+            }
+        }
+    } catch(e) {
+        msg.innerText = "Server Error! ❌";
         msg.style.color = "#ff4b2b";
     }
 }
