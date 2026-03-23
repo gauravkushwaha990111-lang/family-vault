@@ -409,6 +409,23 @@ app.get('/api/intruders', async (req, res) => {
     res.json(intruders);
 });
 
+// M2. API: Intruder delete karna (Admin)
+app.delete('/api/intruders/:id', async (req, res) => {
+    if (req.cookies.auth !== 'verified' || req.cookies.role !== 'admin') return res.status(403).json({ success: false });
+    try {
+        const intruder = await Intruder.findById(req.params.id);
+        if (intruder) {
+            const urlParts = intruder.photoUrl.split('/');
+            const publicId = urlParts.slice(-2).join('/').replace(/\.[^/.]+$/, "");
+            try { await cloudinary.uploader.destroy(publicId); } catch(e) {}
+            await Intruder.findByIdAndDelete(req.params.id);
+        }
+        res.json({ success: true });
+    } catch(err) {
+        res.status(500).json({ success: false });
+    }
+});
+
 // N. API: Activity Logs fetch karna (Terminal ke liye)
 app.get('/api/logs', async (req, res) => {
     if (req.cookies.auth !== 'verified') return res.status(403).json([]);

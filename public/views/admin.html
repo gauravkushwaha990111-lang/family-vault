@@ -173,6 +173,12 @@
         </div>
     </div>
 
+    <!-- Intruder Lightbox Modal -->
+    <div id="intruderLightbox" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--modal-bg); z-index:400; justify-content:center; align-items:center; flex-direction:column;" onclick="closeIntruderLightbox()">
+        <img id="intruderImg" src="" style="max-width:90%; max-height:80vh; border-radius:15px; border:2px solid #ff4b2b; box-shadow: 0 0 20px #ff4b2b; object-fit: contain;">
+        <button style="margin-top:20px; background:rgba(255,255,255,0.1); border:1px solid white; color:white; padding:10px 20px; border-radius:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i> Close Preview</button>
+    </div>
+
     <script>
         function toggleTheme() {
             const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
@@ -299,8 +305,9 @@
             const intruders = await res.json();
             if (intruders.length > 0) {
                 document.getElementById('intruders-list').innerHTML = intruders.map(i => `
-                    <div style="background: rgba(255,75,43,0.1); padding: 5px; border-radius: 10px; border: 1px solid #ff4b2b; text-align: center; min-width: 90px;">
-                        <img src="${i.photoUrl}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; margin-bottom:5px;">
+                    <div style="background: rgba(255,75,43,0.1); padding: 5px; border-radius: 10px; border: 1px solid #ff4b2b; text-align: center; min-width: 90px; position: relative;">
+                        <button onclick="deleteIntruder('${i._id}')" class="delete-btn" style="top: -5px; right: -5px;" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
+                        <img src="${i.photoUrl}" onclick="openIntruderLightbox('${i.photoUrl}')" style="width:80px; height:80px; object-fit:cover; border-radius:8px; margin-bottom:5px; cursor: pointer;" title="Click to enlarge">
                         <br><b style="font-size:0.7rem; color:#ff4b2b;">Tried: ${i.attemptedName}</b>
                         <br><span style="font-size:0.6rem; color:gray;">${new Date(i.timestamp).toLocaleDateString()}</span>
                         <br><button onclick="downloadIntruderPic('${i.photoUrl}', '${i.attemptedName}', event)" style="background:#00f2fe; color:black; border:none; padding:3px 8px; border-radius:5px; margin-top:5px; cursor:pointer; font-size:0.7rem; font-family:'Poppins', sans-serif; font-weight:bold;" title="Download Photo"><i class="fa-solid fa-download"></i> Save</button>
@@ -309,6 +316,22 @@
             } else {
                 document.getElementById('intruders-list').innerHTML = `<p style="color:gray; font-size:0.8rem;">No intruders detected.</p>`;
             }
+        }
+
+        function openIntruderLightbox(url) {
+            document.getElementById('intruderImg').src = url;
+            document.getElementById('intruderLightbox').style.display = 'flex';
+        }
+
+        function closeIntruderLightbox() {
+            document.getElementById('intruderLightbox').style.display = 'none';
+            document.getElementById('intruderImg').src = '';
+        }
+
+        async function deleteIntruder(id) {
+            if (!confirm(isHindi ? "क्या आप सच में इस इंट्रूडर रिकॉर्ड को हटाना चाहते हैं?" : "Are you sure you want to delete this intruder record?")) return;
+            await fetch('/api/intruders/' + id, { method: 'DELETE' });
+            loadIntruders();
         }
 
         // Intruder ki photo download karne ka logic
