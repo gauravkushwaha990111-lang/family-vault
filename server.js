@@ -182,7 +182,7 @@ app.post('/api/face-login', async (req, res) => {
     const members = await Member.find({ faceData: { $exists: true, $not: {$size: 0} } });
     
     let bestMatch = null;
-    let bestDistance = 0.55; // 85%+ match (Lighting variations proof)
+    let bestDistance = 0.62; // 🔥 Threshold badha diya gaya hai taaki alag lighting mein bhi aasani se pehchan le
 
     for (const member of members) {
         const distance = Math.sqrt(member.faceData.reduce((sum, val, i) => sum + Math.pow(val - descriptor[i], 2), 0));
@@ -213,7 +213,7 @@ app.post('/add-member', async (req, res) => {
         const allMembers = await Member.find({ faceData: { $exists: true, $not: {$size: 0} } });
         for(let m of allMembers) {
             const distance = Math.sqrt(m.faceData.reduce((sum, val, i) => sum + Math.pow(val - descriptor[i], 2), 0));
-            if(distance <= 0.55) return res.status(400).json({success: false, message: `Yeh chehra pehle se '${m.name}' ke naam se save hai!`});
+            if(distance <= 0.62) return res.status(400).json({success: false, message: `Yeh chehra pehle se '${m.name}' ke naam se save hai!`});
         }
 
         const newMember = new Member({
@@ -261,7 +261,7 @@ app.post('/api/register-face', async (req, res) => {
     const allMembers = await Member.find({ faceData: { $exists: true, $not: {$size: 0} } });
     for(let m of allMembers) {
         const distance = Math.sqrt(m.faceData.reduce((sum, val, i) => sum + Math.pow(val - descriptor[i], 2), 0));
-        if(distance <= 0.55) return res.status(400).json({success: false, message: `Yeh chehra pehle se '${m.name}' ke naam se save hai!`});
+        if(distance <= 0.62) return res.status(400).json({success: false, message: `Yeh chehra pehle se '${m.name}' ke naam se save hai!`});
     }
 
     await Member.findOneAndUpdate({ nickname: req.body.nickname }, { faceData: req.body.descriptor, profilePic: req.body.profilePic });
